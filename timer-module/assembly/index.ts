@@ -9,12 +9,9 @@ const INTERVAL: f64 = 1000.0; // 1 second in milliseconds
 // Helper function to send messages
 function sendMessage(message: string): void {
   const encoded = String.UTF8.encode(message);
-  postMessage(changetype<i32>(encoded), encoded.byteLength);
-}
-
-// Debug helper
-function sendDebug(message: string, time: f64): void {
-  sendMessage("DEBUG: " + message + " at time: " + time.toString());
+  const ptr = changetype<i32>(encoded);
+  // Log the encoded message details
+  postMessage(ptr, encoded.byteLength);
 }
 
 // Single tick function that checks and updates timer state
@@ -24,36 +21,36 @@ export function tick(): void {
   const currentTime = getCurrentTime();
   const elapsed = currentTime - lastTime;
 
-  // Debug output
-  sendDebug("Elapsed: " + elapsed.toString(), currentTime);
-
   if (elapsed >= INTERVAL) {
-    sendMessage("TICK:" + currentTime.toString());
+    const tickMessage = `TICK:${currentTime}`;
+    sendMessage(tickMessage);
     lastTime = currentTime;
   }
 }
 
 // Start the timer
 export function run(): void {
-    if (!isRunning) {
-      isRunning = true;
-      lastTime = getCurrentTime();
-      sendMessage("START:" + lastTime.toString());
-      // Initial tick to start immediately
-      tick();
-    }
+  if (!isRunning) {
+    isRunning = true;
+    lastTime = getCurrentTime();
+    const startMessage = `START:${lastTime}`;
+    sendMessage(startMessage);
+    tick();
+  }
 }
 
 // Stop the timer
 export function stop(): void {
-    isRunning = false;
-    sendMessage("STOP:" + getCurrentTime().toString());
+  isRunning = false;
+  const stopMessage = `STOP:${getCurrentTime()}`;
+  sendMessage(stopMessage);
 }
 
 // Reset timer
 export function reset(): void {
-  lastTime = getCurrentTime();
-  if (isRunning) {
-    sendMessage("RESET:" + lastTime.toString());
-  }
+    lastTime = getCurrentTime();
+    if (isRunning) {
+      const resetMessage = `RESET:${lastTime}`;
+      sendMessage(resetMessage);
+    }
 }
