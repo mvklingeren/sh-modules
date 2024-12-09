@@ -5,6 +5,6 @@
   "description": "A simple counter implemented in WebAssembly",
   "entry": {
     "type": "webassembly",
-    "wasmUrl": "build/release.wasm"
+    "wasmUrl": "/build/release.wasm"
   }
 }
