@@ -1,0 +1,9 @@
+{
+  "id": "counter-module",
+  "name": "Simple Counter",
+  "version": "1.0.0",
+  "entry": {
+    "type": "javascript",
+    "script": "counter.js"
+  }
+}
