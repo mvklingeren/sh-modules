@@ -1,6 +1,6 @@
 // timer.ts
 
-// Declare external functions
+// Declare external functions - note we'll implement these on the Node.js side
 declare function postMessage(ptr: number, length: number): void;
 declare function getCurrentTime(): number;
 
@@ -9,21 +9,38 @@ let lastTime: f64 = 0;
 let isRunning: bool = false;
 const INTERVAL: f64 = 1000.0; // 1 second in milliseconds
 
-// Helper function to send messages - simplified
+// Create a fixed buffer for our messages
+const MSG_BUFFER_SIZE = 256; // Size for our message buffer
+let messageBuffer: ArrayBuffer;
+
+// Initialize the message buffer
+export function init(): void {
+  messageBuffer = new ArrayBuffer(MSG_BUFFER_SIZE);
+}
+
+// Helper function to send messages using our fixed buffer
 function sendMessage(message: string): void {
-  // String.UTF8.encode returns a valid pointer to UTF8 encoded data
-  const messagePtr = String.UTF8.encode(message);
-  // Send the pointer and length to JavaScript
-  postMessage(changetype<i32>(messagePtr), messagePtr.byteLength);
+  // Get the UTF8 bytes of our message
+  const bytes = String.UTF8.encode(message);
+
+  // Copy the bytes into our fixed buffer
+  memory.copy(
+    changetype<usize>(messageBuffer),
+    changetype<usize>(bytes),
+    bytes.byteLength
+  );
+
+  // Send the message using our fixed buffer's pointer
+  postMessage(changetype<i32>(messageBuffer), bytes.byteLength);
 }
 
 // Single tick function that checks and updates timer state
 export function tick(): void {
   if (!isRunning) return;
-
+  
   const currentTime = getCurrentTime();
   const elapsed = currentTime - lastTime;
-
+  
   if (elapsed >= INTERVAL) {
     sendMessage(`TICK:${currentTime}`);
     lastTime = currentTime;
