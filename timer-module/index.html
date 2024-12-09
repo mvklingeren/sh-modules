@@ -2,9 +2,62 @@
 <html lang="en">
 <head>
 <script type="module">
-import { run } from "./build/release.js";
-document.body.innerText = add(1, 2);
+// Common function to handle consoleLog and postMessage
+function handleMessage(ptr, length) {
+    const message = new TextDecoder().decode(new Uint8Array(imports.env.memory.buffer, ptr, length));
+    console.log(message);
+}
+
+// Define the imports for the WebAssembly module
+const imports = {
+    env: {
+        consoleLog: handleMessage,
+        postMessage: handleMessage,
+        abort: (message, fileName, lineNumber, columnNumber) => {
+            const errorMessage = `Abort called: ${message} in ${fileName}:${lineNumber}:${columnNumber}`;
+            console.error(errorMessage);
+            throw new Error(errorMessage);
+        },
+        memory: null, // Will be set after instantiation
+    },
+    index: {
+        getCurrentTime: () => Date.now() / 1000,
+        consoleLog: handleMessage,
+        postMessage: handleMessage,
+    }
+};
+
+// Load the WebAssembly module
+async function loadWasm() {
+    try {
+        const response = await fetch('./build/debug.wasm');
+        const wasmModule = await WebAssembly.compileStreaming(response);
+        const instance = await WebAssembly.instantiate(wasmModule, imports);
+        
+        // Set the memory reference in the env object
+        imports.env.memory = instance.exports.memory;
+        
+        // Start the timer
+        instance.exports.run();
+        
+        // Create animation loop to drive the timer
+        function animate() {
+            instance.exports.tick();
+            requestAnimationFrame(animate);
+        }
+        animate();
+        
+        console.log("WASM module executed successfully.");
+    } catch (error) {
+        console.error("Error loading or running WASM:", error);
+    }
+}
+
+// Load the WASM module when the page loads
+window.onload = loadWasm;
 </script>
 </head>
-<body></body>
+<body>
+<p>Loading WASM...</p>
+</body>
 </html>

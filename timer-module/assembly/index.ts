@@ -12,37 +12,42 @@ function sendMessage(message: string): void {
   postMessage(changetype<i32>(encoded), encoded.byteLength);
 }
 
-// Internal timer check
-function checkTimer(): void {
+// Debug helper
+function sendDebug(message: string, time: f64): void {
+  sendMessage("DEBUG: " + message + " at time: " + time.toString());
+}
+
+// Single tick function that checks and updates timer state
+export function tick(): void {
   if (!isRunning) return;
 
   const currentTime = getCurrentTime();
-  if (currentTime - lastTime >= INTERVAL) {
-    lastTime = currentTime;
-    // Send simple string message instead of JSON
-    sendMessage("TICK:" + currentTime.toString());
-  }
+  const elapsed = currentTime - lastTime;
 
-  // Continue the loop while running
-  if (isRunning) {
-    checkTimer();
+  // Debug output
+  sendDebug("Elapsed: " + elapsed.toString(), currentTime);
+
+  if (elapsed >= INTERVAL) {
+    sendMessage("TICK:" + currentTime.toString());
+    lastTime = currentTime;
   }
 }
 
 // Start the timer
 export function run(): void {
-  if (!isRunning) {
-    isRunning = true;
-    lastTime = getCurrentTime();
-    sendMessage("START:" + lastTime.toString());
-    checkTimer();
-  }
+    if (!isRunning) {
+      isRunning = true;
+      lastTime = getCurrentTime();
+      sendMessage("START:" + lastTime.toString());
+      // Initial tick to start immediately
+      tick();
+    }
 }
 
 // Stop the timer
 export function stop(): void {
-  isRunning = false;
-  sendMessage("STOP:" + getCurrentTime().toString());
+    isRunning = false;
+    sendMessage("STOP:" + getCurrentTime().toString());
 }
 
 // Reset timer
