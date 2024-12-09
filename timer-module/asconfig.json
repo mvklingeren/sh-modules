@@ -15,6 +15,12 @@
       "shrinkLevel": 0,
       "converge": false,
       "noAssert": false
+    },
+    "options": {
+      "bindings": "esm",
+      "importMemory": true,
+      "initialMemory": 256,
+      "maximumMemory": 512
     }
   }
 }
