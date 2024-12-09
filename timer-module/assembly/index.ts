@@ -3,39 +3,45 @@
 // Declare external functions
 declare function postMessage(ptr: number, length: number): void;
 declare function getCurrentTime(): number;
+declare function consoleLog(ptr: number, len: number): void;
 
 // State variables
 let lastTime: f64 = 0;
 let isRunning: bool = false;
 const INTERVAL: f64 = 1000.0; // 1 second in milliseconds
 
+// Debug logging helper
+function debugLog(message: string): void {
+  const encoded = String.UTF8.encode(message);
+  consoleLog(changetype<i32>(encoded), encoded.byteLength);
+}
+
 // Helper function to send messages
 function sendMessage(message: string): void {
-  // Convert the string to UTF8 bytes
+  debugLog("Sending message: " + message);
+
+  // Encode string to UTF8 and get data pointer
   const encoded = String.UTF8.encode(message);
+  const ptr = changetype<i32>(encoded);
 
-  // Create a new Uint8Array to hold the message
-  const buffer = new Uint8Array(encoded.byteLength);
+  debugLog(
+    "Sending with ptr: " +
+      ptr.toString() +
+      " length: " +
+      encoded.byteLength.toString()
+  );
 
-  // Copy the encoded message into the buffer
-  for (let i = 0; i < encoded.byteLength; i++) {
-    buffer[i] = load<u8>(changetype<usize>(encoded) + i);
-  }
-
-  // Get the pointer to the buffer's data
-  const ptr = changetype<usize>(buffer.buffer);
-
-  // Send the message
-  postMessage(ptr as i32, buffer.length);
+  // Send the message directly using the encoded string's pointer
+  postMessage(ptr, encoded.byteLength);
 }
 
 // Single tick function that checks and updates timer state
 export function tick(): void {
   if (!isRunning) return;
-
+  
   const currentTime = getCurrentTime();
   const elapsed = currentTime - lastTime;
-
+  
   if (elapsed >= INTERVAL) {
     const tickMessage = "TICK:" + currentTime.toString();
     sendMessage(tickMessage);
