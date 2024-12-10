@@ -2,6 +2,7 @@
   "id": "timer-module",
   "name": "WASM Counter",
   "version": "1.0.0",
+  "active": false,
   "description": "A simple counter implemented in WebAssembly",
   "entry": {
     "type": "webassembly",
