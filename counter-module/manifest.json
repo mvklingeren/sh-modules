@@ -2,8 +2,23 @@
   "id": "counter-module",
   "name": "Simple Counter",
   "version": "1.0.0",
+  "description": "A simple counter module demonstrating basic functionality",
+  "author": {
+    "name": "Original Author"
+  },
+  "tags": ["demo", "ui", "interactive"],
+
   "entry": {
     "type": "javascript",
-    "script": "counter.js"
+    "script": "counter.js",
+    "validation": {
+      "required": true
+    }
+  },
+
+  "resources": [],
+
+  "config": {
+    "settings": {}
   }
 }
