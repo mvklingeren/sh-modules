@@ -2,6 +2,7 @@
   "id": "render-blocks-module",
   "name": "Renders a map of blocks",
   "version": "1.0.0",
+  "active": false,
   "description": "A simple rendering module demonstrating basic functionality",
   "author": {
     "name": "Original Author"

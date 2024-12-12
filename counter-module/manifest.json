@@ -6,6 +6,7 @@
   "author": {
     "name": "Original Author"
   },
+  "active": false,
   "tags": ["demo", "ui", "interactive"],
 
   "entry": {
