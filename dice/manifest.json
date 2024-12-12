@@ -1,0 +1,73 @@
+{
+  "id": "dice-module",
+  "name": "Simple Spinning Dice",
+  "version": "1.0.0",
+  "description": "A simple spinning cube demonstration",
+  "author": {
+    "name": "Demo Author"
+  },
+  "tags": ["demo", "3d", "animation"],
+
+  "entry": {
+    "type": "javascript",
+    "script": "main.js",
+    "validation": {
+      "required": true
+    }
+  },
+
+  "resources": [
+    {
+      "id": "vertexShader",
+      "type": "vertexShader",
+      "source": {
+        "type": "inline",
+        "data": "#version 300 es\nprecision highp float;\n\nin vec3 position;\nin vec3 normal;\nin vec2 uv;\n\nuniform mat4 uModelMatrix;\nuniform mat4 uViewMatrix;\nuniform mat4 uProjectionMatrix;\n\nout vec3 vNormal;\nout vec3 vPosition;\n\nvoid main() {\n    vNormal = (uModelMatrix * vec4(normal, 0.0)).xyz;\n    vec4 worldPosition = uModelMatrix * vec4(position, 1.0);\n    vPosition = worldPosition.xyz;\n    gl_Position = uProjectionMatrix * uViewMatrix * worldPosition;\n}"
+      },
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "id": "fragmentShader",
+      "type": "fragmentShader",
+      "source": {
+        "type": "inline",
+        "data": "#version 300 es\nprecision highp float;\n\nin vec3 vNormal;\nin vec3 vPosition;\n\nuniform vec3 uLightPosition;\nuniform vec3 uLightColor;\n\nout vec4 fragColor;\n\nvoid main() {\n    vec3 normal = normalize(vNormal);\n    vec3 lightDir = normalize(uLightPosition - vPosition);\n    float diff = max(dot(normal, lightDir), 0.0);\n    vec3 diffuse = diff * uLightColor;\n    vec3 ambient = vec3(0.2);\n    fragColor = vec4(ambient + diffuse, 1.0);\n}"
+      },
+      "validation": {
+        "required": true
+      }
+    }
+  ],
+
+  "config": {
+    "uniforms": [
+      {
+        "name": "uModelMatrix",
+        "type": "mat4",
+        "defaultValue": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
+      },
+      {
+        "name": "uViewMatrix",
+        "type": "mat4",
+        "defaultValue": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
+      },
+      {
+        "name": "uProjectionMatrix",
+        "type": "mat4",
+        "defaultValue": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
+      },
+      {
+        "name": "uLightPosition",
+        "type": "vec3",
+        "defaultValue": [5, 5, 5]
+      },
+      {
+        "name": "uLightColor",
+        "type": "vec3",
+        "defaultValue": [1, 1, 1]
+      }
+    ]
+  }
+}
