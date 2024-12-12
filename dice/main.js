@@ -1,8 +1,8 @@
-let diceId = 'dice';
-let rotationSpeed = 1.0;
+const diceId = 'dice';
+const rotationSpeed = 1.0;
 
-exports.init = function (api) {
-    console.log("[Dice Module] Initializing...");
+export const init = (api) => {
+    console.log("[Dice Module] Starting initialization...");
 
     // Create the dice cube
     api.scene.createObject('box', diceId, {
@@ -11,36 +11,35 @@ exports.init = function (api) {
         depth: 2
     });
 
-    // Position it at the center and log
-    api.scene.setPosition(diceId, 0, 0, 0);
-    console.log("[Dice Module] Dice position set:", {
-        id: diceId,
-        position: [0, 0, 0],
-        size: [2, 2, 2]
-    });
+    // Position it slightly back from origin
+    api.scene.setPosition(diceId, 0, 0, -5);
 
-    // Set up camera and log
+    // Set up camera with debug logging
+    console.log("[Dice Module] Setting camera position...");
     api.camera.setPosition(0, 0, 10);
-    api.camera.lookAt(0, 0, 0);
-    console.log("[Dice Module] Camera configured:", {
-        position: [0, 0, 10],
-        lookingAt: [0, 0, 0]
+    api.camera.lookAt(0, 0, -5);  // Look at where we placed the dice
+
+    // Verify camera position
+    const camState = api.camera.getState();
+    console.log("[Dice Module] Camera state:", {
+        position: camState.position,
+        target: [0, 0, -5],
+        actualPosition: Array.from(camState.position)
     });
 
-    // Store API reference for update
-    this.api = api;
+    // Set initial light position
+    api.setState('uLightPosition', [5, 5, 5]);
+    api.setState('uLightColor', [1, 1, 1]);
+    api.setState('uObjectColor', [0.5, 0.5, 1.0]);
 
-    console.log("[Dice Module] Initialized!");
+    console.log("[Dice Module] Initialization complete!");
 };
 
-exports.update = function (event) {
-    const { time } = event;
-
-    // Use the stored API reference
-    const api = this.api;
+export const update = (event) => {
+    const { time, api } = event;
 
     if (!api) {
-        console.error("[Dice Module] API not available in update!");
+        console.error("[Dice Module] No API in update!");
         return;
     }
 
@@ -57,24 +56,11 @@ exports.update = function (event) {
     const lightZ = Math.sin(time) * 5;
     const lightY = 5;
     api.setState('uLightPosition', [lightX, lightY, lightZ]);
-
-    // Debug log every few seconds
-    if (Math.floor(time) % 5 === 0) {
-        console.log("[Dice Module] Update state:", {
-            time,
-            rotation: [
-                time * rotationSpeed,
-                time * rotationSpeed * 0.7,
-                time * rotationSpeed * 0.5
-            ],
-            lightPosition: [lightX, lightY, lightZ]
-        });
-    }
 };
 
-exports.dispose = function () {
-    if (this.api) {
-        this.api.scene.destroyObject(diceId);
+export const dispose = (api) => {
+    if (api) {
+        api.scene.destroyObject(diceId);
         console.log("[Dice Module] Disposed");
     }
 };
