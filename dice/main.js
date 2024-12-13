@@ -30,7 +30,7 @@ exports.update = function (event) {
     const y = Math.sin(time) * 2;
     GameAPI.scene.setPosition('test-cube', 0, y, 0);
 
-    if (Math.floor(time) % 2 === 0) {
+    if (Math.floor(time) % 60 === 0) {
         GameAPI.debug(`Cube position: [0, ${y.toFixed(2)}, 0]`);
     }
 };
