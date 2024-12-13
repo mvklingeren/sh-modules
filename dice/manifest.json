@@ -20,10 +20,7 @@
       "type": "vertexShader",
       "source": {
         "type": "inline",
-        "data": "#version 300 es\nprecision highp float;\n\nin vec3 position;\nin vec3 normal;\nin vec2 uv;\n\nuniform mat4 uModelMatrix;\nuniform mat4 uViewMatrix;\nuniform mat4 uProjectionMatrix;\n\nout vec3 vNormal;\nout vec3 vPosition;\n\nvoid main() {\n    vNormal = (uModelMatrix * vec4(normal, 0.0)).xyz;\n    vec4 worldPosition = uModelMatrix * vec4(position, 1.0);\n    vPosition = worldPosition.xyz;\n    gl_Position = uProjectionMatrix * uViewMatrix * worldPosition;\n}"
-      },
-      "validation": {
-        "required": true
+        "data": "#version 300 es\nprecision highp float;\n\nin vec3 position;\nin vec3 normal;\nin vec2 uv;\n\nuniform mat4 uModelMatrix;\nuniform mat4 uViewMatrix;\nuniform mat4 uProjectionMatrix;\n\nout vec3 vNormal;\nout vec3 vPosition;\nout vec2 vUv;\n\nvoid main() {\n    vNormal = (uModelMatrix * vec4(normal, 0.0)).xyz;\n    vec4 worldPosition = uModelMatrix * vec4(position, 1.0);\n    vPosition = worldPosition.xyz;\n    vUv = uv;\n    gl_Position = uProjectionMatrix * uViewMatrix * worldPosition;\n}"
       }
     },
     {
@@ -31,10 +28,7 @@
       "type": "fragmentShader",
       "source": {
         "type": "inline",
-        "data": "#version 300 es\nprecision highp float;\n\nin vec3 vNormal;\nin vec3 vPosition;\n\nuniform vec3 uLightPosition;\nuniform vec3 uLightColor;\nuniform vec3 uObjectColor;\n\nout vec4 fragColor;\n\nvoid main() {\n    vec3 normal = normalize(vNormal);\n    vec3 lightDir = normalize(uLightPosition - vPosition);\n    \n    vec3 ambient = vec3(0.3) * uObjectColor;\n    \n    float diff = max(dot(normal, lightDir), 0.0);\n    vec3 diffuse = diff * uLightColor * uObjectColor;\n    \n    vec3 viewDir = normalize(-vPosition);\n    vec3 reflectDir = reflect(-lightDir, normal);\n    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);\n    vec3 specular = vec3(0.5) * spec * uLightColor;\n    \n    fragColor = vec4(ambient + diffuse + specular, 1.0);\n}"
-      },
-      "validation": {
-        "required": true
+        "data": "#version 300 es\nprecision highp float;\n\nin vec3 vNormal;\nin vec3 vPosition;\nin vec2 vUv;\n\nuniform vec3 uLightPosition;\nuniform vec3 uLightColor;\nuniform vec3 uObjectColor;\nuniform float uTime;\n\nout vec4 fragColor;\n\nvoid main() {\n    vec3 normal = normalize(vNormal);\n    vec3 lightDir = normalize(uLightPosition - vPosition);\n    \n    // Animate color based on time\n    vec3 objColor = uObjectColor * (0.8 + 0.2 * sin(uTime + vPosition.y));\n    \n    vec3 ambient = vec3(0.3) * objColor;\n    float diff = max(dot(normal, lightDir), 0.0);\n    vec3 diffuse = diff * uLightColor * objColor;\n    \n    vec3 viewDir = normalize(-vPosition);\n    vec3 reflectDir = reflect(-lightDir, normal);\n    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);\n    vec3 specular = vec3(0.5) * spec * uLightColor;\n    \n    // Add pattern based on UV coordinates\n    float pattern = sin(vUv.x * 10.0 + uTime) * sin(vUv.y * 10.0 + uTime) * 0.5 + 0.5;\n    \n    fragColor = vec4(ambient + diffuse + specular + pattern * 0.2, 1.0);\n}"
       }
     }
   ],
@@ -68,7 +62,12 @@
       {
         "name": "uObjectColor",
         "type": "vec3",
-        "defaultValue": [0.5, 0.5, 1.0]
+        "defaultValue": [0.7, 0.3, 0.9]
+      },
+      {
+        "name": "uTime",
+        "type": "float",
+        "defaultValue": 0.0
       }
     ]
   }
