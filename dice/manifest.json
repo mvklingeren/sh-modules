@@ -6,7 +6,7 @@
   "author": {
     "name": "Demo Author"
   },
-  "active": false,
+  "active": true,
   "tags": ["demo", "3d", "animation"],
   "entry": {
     "type": "javascript",
