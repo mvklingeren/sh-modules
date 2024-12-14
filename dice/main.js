@@ -23,14 +23,21 @@ exports.init = function (api) {
 exports.update = function (event) {
     const { time } = event;
 
-    // Simple rotation around Y axis
-    GameAPI.scene.setRotation('test-cube', 0, time, 0);
+    // Different rotation speeds for each axis
+    const xRotation = time * 0.5;  // Slower rotation on X
+    const yRotation = time;        // Original Y rotation speed
+    const zRotation = time * 0.75; // Medium rotation on Z
 
-    // Move up and down
-    const y = Math.sin(time) * 2;
+    // Apply rotation on all axes
+    GameAPI.scene.setRotation('test-cube', xRotation, yRotation, zRotation);
+
+    // Move up and down with a smaller amplitude
+    const y = Math.sin(time) * 1.5;
     GameAPI.scene.setPosition('test-cube', 0, y, 0);
 
-    // if (Math.floor(time) % 60 === 0) {
-    //     GameAPI.debug(`Cube position: [0, ${y.toFixed(2)}, 0]`);
-    // }
+    // Optional debug logging every second
+    if (Math.floor(time) % 60 === 0) {
+        GameAPI.debug(`Cube rotation: [${xRotation.toFixed(2)}, ${yRotation.toFixed(2)}, ${zRotation.toFixed(2)}]`);
+        GameAPI.debug(`Cube position: [0, ${y.toFixed(2)}, 0]`);
+    }
 };
