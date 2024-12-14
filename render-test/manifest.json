@@ -3,14 +3,22 @@
   "version": "1.0.0",
   "description": "Basic WebGL cube renderer",
   "main": "main.js",
-  "resources": {
-    "vertexShader": {
-      "type": "text",
-      "path": "vertex.glsl"
+  "resources": [
+    {
+      "id": "vertexShader",
+      "type": "vertexShader",
+      "source": {
+        "type": "relative",
+        "path": "vertex.glsl"
+      }
     },
-    "fragmentShader": {
-      "type": "text",
-      "path": "shaders/fragment.glsl"
+    {
+      "id": "fragmentShader",
+      "type": "fragmentShader",
+      "source": {
+        "type": "relative",
+        "path": "fragment.glsl"
+      }
     }
-  }
+  ]
 }
