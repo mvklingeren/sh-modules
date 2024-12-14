@@ -4,40 +4,39 @@ precision highp float;
 in vec3 vNormal;
 in vec3 vPosition;
 
-uniform vec3 uLightPosition;
-uniform vec3 uLightColor;
-uniform vec3 uObjectColor;
+uniform vec3 uLightPosition; // Position of the light source
+uniform vec3 uLightColor;    // Color of the light
+uniform vec3 uObjectColor;   // Color of the object
 
 out vec4 fragColor;
 
 void main() {
+    // Normalize the interpolated normal and calculate light direction
     vec3 normal = normalize(vNormal);
     vec3 lightDir = normalize(uLightPosition - vPosition);
     
-    // Increase ambient light contribution
-    vec3 ambient = 0.6 * uObjectColor;
-    
-    // Enhance diffuse lighting
+    // Ambient lighting: softer contribution
+    vec3 ambient = 0.2 * uObjectColor; 
+
+    // Diffuse lighting: Lambertian reflectance
     float diff = max(dot(normal, lightDir), 0.0);
     vec3 diffuse = diff * uLightColor * uObjectColor;
-    
-    // Add stronger specular highlights
-    vec3 viewDir = normalize(-vPosition);
-    vec3 halfDir = normalize(lightDir + viewDir);
 
-float spec = pow(max(dot(normal, halfDir), 0.0), 128.0); // Higher exponent for tighter specular
-vec3 specular = 1.0 * spec * uLightColor * uObjectColor;
+    // Specular lighting: Phong reflection model
+    vec3 viewDir = normalize(-vPosition); // Assuming the camera is at (0,0,0)
+    vec3 halfDir = normalize(lightDir + viewDir); // Halfway vector
+    float spec = pow(max(dot(normal, halfDir), 0.0), 64.0); // Specular exponent for wider highlights
+    vec3 specular = 1.0 * spec * uLightColor;
 
-    
-    // Combine lighting with adjusted weights
-vec3 result = ambient * 1.2 + diffuse * 1.5 + specular;
+    // Combine all lighting components
+    vec3 result = ambient + diffuse + specular;
 
-    
-    // Apply gamma correction for better contrast
-result = pow(result, vec3(1.0/2.0)); // Softer gamma correction
-    
-    // Ensure minimum brightness while preserving color
-    result = max(result, vec3(0.2));
-    
+    // Apply gamma correction for better contrast and brightness
+    result = pow(result, vec3(1.0 / 2.2)); // Gamma correction for sRGB
+
+    // Ensure minimum brightness (optional, to prevent complete black regions)
+    result = max(result, vec3(0.2)); 
+
+    // Output the final color
     fragColor = vec4(result, 1.0);
 }
