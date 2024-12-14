@@ -2,7 +2,7 @@ exports.init = function (api) {
     GameAPI.debug('Starting cube grid demo');
 
     // Set up camera at a position where we might see multiple cubes
-    GameAPI.camera.setPosition(20, 0, 0);
+    GameAPI.camera.setPosition(20, 15, 20);
     GameAPI.camera.lookAt(0, 0, 0);
 
     // Create a 5x5x5 grid of cubes
@@ -24,7 +24,7 @@ exports.init = function (api) {
                 });
 
                 // Position cube in grid
-                GameAPI.scene.setPosition(cubeId,
+                GameAPI.scene.setPosition(cubeId, 
                     x * spacing - offset,
                     y * spacing - offset,
                     z * spacing - offset
@@ -58,7 +58,7 @@ exports.update = function (event) {
 
                 // Each cube rotates at a slightly different speed
                 const rotationSpeed = (x + y + z) / (gridSize * 3);
-                GameAPI.scene.setRotation(cubeId,
+                GameAPI.scene.setRotation(cubeId, 
                     time * rotationSpeed,
                     time * rotationSpeed * 0.5,
                     time * rotationSpeed * 0.3
