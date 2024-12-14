@@ -2,7 +2,7 @@ exports.init = function (api) {
     GameAPI.debug('🚀 Starting simplified test');
 
     // Set up camera closer to origin
-    GameAPI.camera.setPosition(0, 5, 10);
+    GameAPI.camera.setPosition(0, 5, 20);
     GameAPI.camera.lookAt(0, 0, 0);
 
     // Create a single red cube at the origin
