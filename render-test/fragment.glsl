@@ -15,7 +15,7 @@ void main() {
     vec3 lightDir = normalize(uLightPosition - vPosition);
     
     // Increase ambient light contribution
-    vec3 ambient = 0.4 * uObjectColor;
+    vec3 ambient = 0.6 * uObjectColor;
     
     // Enhance diffuse lighting
     float diff = max(dot(normal, lightDir), 0.0);
@@ -24,14 +24,17 @@ void main() {
     // Add stronger specular highlights
     vec3 viewDir = normalize(-vPosition);
     vec3 halfDir = normalize(lightDir + viewDir);
-    float spec = pow(max(dot(normal, halfDir), 0.0), 64.0);
-    vec3 specular = 0.8 * spec * uLightColor;
+
+float spec = pow(max(dot(normal, halfDir), 0.0), 128.0); // Higher exponent for tighter specular
+vec3 specular = 1.0 * spec * uLightColor * uObjectColor;
+
     
     // Combine lighting with adjusted weights
-    vec3 result = ambient + diffuse + specular;
+vec3 result = ambient * 1.2 + diffuse * 1.5 + specular;
+
     
     // Apply gamma correction for better contrast
-    result = pow(result, vec3(1.0/2.2));
+result = pow(result, vec3(1.0/2.0)); // Softer gamma correction
     
     // Ensure minimum brightness while preserving color
     result = max(result, vec3(0.2));
