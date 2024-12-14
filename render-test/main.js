@@ -1,4 +1,10 @@
 exports.init = function (api) {
+    // In the init function, set up bright lighting
+    // Set very bright light to ensure visibility
+    GameAPI.scene.setUniform('uLightPosition', [20, 20, 20]);  // Strong light from above diagonal
+    GameAPI.scene.setUniform('uLightColor', [5, 5, 5]);       // Super bright white light (> 1 for intensity)
+    GameAPI.scene.setUniform('uObjectColor', [0.7, 0.7, 1.0]); // Bright blue-ish color
+
     GameAPI.debug('Starting cube grid demo');
 
     // Set up camera at a position where we might see multiple cubes
