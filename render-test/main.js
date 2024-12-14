@@ -1,25 +1,23 @@
 exports.init = function (api) {
-    // In the init function, set up bright lighting
-    // Set very bright light to ensure visibility
-    GameAPI.scene.setUniform('uLightPosition', [20, 20, 20]);  // Strong light from above diagonal
-    GameAPI.scene.setUniform('uLightColor', [5, 5, 5]);       // Super bright white light (> 1 for intensity)
-    GameAPI.scene.setUniform('uObjectColor', [0.7, 0.7, 1.0]); // Bright blue-ish color
+    // Position light closer to the scene and from a better angle
+    GameAPI.scene.setUniform('uLightPosition', [10, 15, 10]);  // Closer, still from above
+    GameAPI.scene.setUniform('uLightColor', [1.2, 1.2, 1.2]); // Slightly intense white light
+    GameAPI.scene.setUniform('uObjectColor', [0.9, 0.9, 1.0]); // Brighter base color
 
-    GameAPI.debug('Starting cube grid demo');
+    GameAPI.debug('Starting cube grid demo with improved lighting');
 
-    // Set up camera at a position where we might see multiple cubes
-    GameAPI.camera.setPosition(15, -25, 15);
+    // Position camera for better viewing angle
+    GameAPI.camera.setPosition(12, 15, 12);
     GameAPI.camera.lookAt(0, 0, 0);
 
     // Create a 5x5x5 grid of cubes
-    const spacing = 3; // Space between cubes
-    const gridSize = 5; // Number of cubes per dimension
-    const offset = (gridSize * spacing) / 2; // Center the grid
+    const spacing = 3;
+    const gridSize = 5;
+    const offset = (gridSize * spacing) / 2;
 
     for (let x = 0; x < gridSize; x++) {
         for (let y = 0; y < gridSize; y++) {
             for (let z = 0; z < gridSize; z++) {
-                // Generate unique ID for each cube
                 const cubeId = `cube-${x}-${y}-${z}`;
 
                 // Create cube
@@ -36,25 +34,21 @@ exports.init = function (api) {
                     z * spacing - offset
                 );
 
-                // Give each cube a slightly different color based on position
-                const r = x / gridSize;
-                const g = y / gridSize;
-                const b = z / gridSize;
+                // Create more vibrant colors with better contrast
+                const r = 0.5 + (x / gridSize) * 0.5;  // Range 0.5-1.0
+                const g = 0.5 + (y / gridSize) * 0.5;  // Range 0.5-1.0
+                const b = 0.5 + (z / gridSize) * 0.5;  // Range 0.5-1.0
                 GameAPI.scene.setUniform('uObjectColor', [r, g, b]);
             }
         }
     }
 
-    // Set up strong lighting
-    GameAPI.scene.setUniform('uLightPosition', [20, 20, 20]);
-    GameAPI.scene.setUniform('uLightColor', [1, 1, 1]);
-
-    GameAPI.debug('Cube grid created');
+    GameAPI.debug('Cube grid created with enhanced colors');
 };
 
 exports.update = function (event) {
-    // Optional: slowly rotate all cubes
-    const time = event.time;
+    // Slower rotation for better light observation
+    const time = event.time * 0.5;
     const gridSize = 5;
 
     for (let x = 0; x < gridSize; x++) {
@@ -62,12 +56,12 @@ exports.update = function (event) {
             for (let z = 0; z < gridSize; z++) {
                 const cubeId = `cube-${x}-${y}-${z}`;
 
-                // Each cube rotates at a slightly different speed
-                const rotationSpeed = (x + y + z) / (gridSize * 3);
+                // More gentle rotation speeds
+                const rotationSpeed = ((x + y + z) / (gridSize * 3)) * 0.3;
                 GameAPI.scene.setRotation(cubeId, 
                     time * rotationSpeed,
-                    time * rotationSpeed * 0.5,
-                    time * rotationSpeed * 0.3
+                    time * rotationSpeed * 0.7,
+                    time * rotationSpeed * 0.5
                 );
             }
         }
