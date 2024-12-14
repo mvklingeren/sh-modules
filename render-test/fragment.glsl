@@ -28,14 +28,14 @@ void main() {
     float spec = pow(max(dot(normal, halfDir), 0.0), 64.0); // Specular exponent for wider highlights
     vec3 specular = 1.0 * spec * uLightColor;
 
-    // Combine all lighting components
-    vec3 result = ambient + diffuse + specular;
+    // Boost color intensity
+    vec3 result = ambient * 1.5 + diffuse * 2.0 + specular * 1.2;
 
-    // Apply gamma correction for better contrast and brightness
-    result = pow(result, vec3(1.0 / 2.2)); // Gamma correction for sRGB
+    // More aggressive gamma correction
+    result = pow(result, vec3(1.0/1.8)); // Adjust this value
 
-    // Ensure minimum brightness (optional, to prevent complete black regions)
-    result = max(result, vec3(0.2)); 
+    // Increase minimum brightness
+    result = max(result, vec3(0.3)); // Slightly higher base brightness
 
     // Output the final color
     fragColor = vec4(result, 1.0);

@@ -35,10 +35,10 @@ exports.init = function (api) {
                 );
 
                 // Create more vibrant colors with better contrast
-                const r = 0.5 + (x / gridSize) * 0.5;  // Range 0.5-1.0
-                const g = 0.5 + (y / gridSize) * 0.5;  // Range 0.5-1.0
-                const b = 0.5 + (z / gridSize) * 0.5;  // Range 0.5-1.0
-                GameAPI.scene.setUniform('uObjectColor', [r, g, b]);
+                const r = x / gridSize;
+                const g = y / gridSize;
+                const b = z / gridSize;
+                GameAPI.scene.setUniform('uObjectColor', [r * 1.2, g * 1.2, b * 1.2]); // Boost color intensity
             }
         }
     }
