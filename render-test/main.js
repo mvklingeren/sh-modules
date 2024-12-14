@@ -2,7 +2,7 @@ exports.init = function (api) {
     GameAPI.debug('Starting cube grid demo');
 
     // Set up camera at a position where we might see multiple cubes
-    GameAPI.camera.setPosition(20, 15, 20);
+    GameAPI.camera.setPosition(15, -25, 15);
     GameAPI.camera.lookAt(0, 0, 0);
 
     // Create a 5x5x5 grid of cubes
