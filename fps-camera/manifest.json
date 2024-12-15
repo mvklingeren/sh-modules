@@ -1,0 +1,30 @@
+{
+  "id": "fps-camera",
+  "name": "FPS Camera Demo",
+  "version": "1.0.0",
+  "active": true,
+  "description": "First-person camera control demo",
+  "entry": {
+    "type": "javascript",
+    "script": "main.js",
+    "validation": {
+      "required": true
+    }
+  },
+  "config": {
+    "camera": {
+      "moveSpeed": 10.0,
+      "lookSpeed": 0.002,
+      "startPosition": [0, 2, 5],
+      "startRotation": [0, 0, 0]
+    },
+    "controls": {
+      "forward": "KeyW",
+      "backward": "KeyS",
+      "left": "KeyA",
+      "right": "KeyD",
+      "up": "Space",
+      "down": "ShiftLeft"
+    }
+  }
+}

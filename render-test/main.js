@@ -9,11 +9,39 @@ exports.init = function (api) {
 
     // Define different materials
     const materials = {
-        metallic: { type: 'metallic', roughness: 0.2, metalness: 0.8, color: [0.8, 0.8, 0.9] },
-        plastic: { type: 'plastic', roughness: 0.7, metalness: 0.0, color: [0.9, 0.2, 0.2] },
-        glass: { type: 'glass', roughness: 0.0, metalness: 0.1, color: [0.3, 0.8, 0.9], alpha: 0.5 },
-        wood: { type: 'wood', roughness: 0.9, metalness: 0.0, color: [0.6, 0.3, 0.1] },
-        emissive: { type: 'emissive', emission: 1.0, color: [1.0, 0.6, 0.0] }
+        metallic: {
+            type: 'metallic',
+            roughness: 0.2,  // Lower for more specular
+            metalness: 1.0,  // Full metalness
+            color: [0.9, 0.9, 0.95],
+            alpha: 0.3
+        },
+        plastic: {
+            type: 'plastic',
+            roughness: 0.3,  // Lower for more gloss
+            metalness: 0.0,
+            color: [0.9, 0.2, 0.2]
+        },
+        glass: {
+            type: 'glass',
+            roughness: 0.05, // Very smooth
+            metalness: 0.2,  // Slight metallic look
+            color: [0.3, 0.8, 0.9],
+            alpha: 0.5
+        },
+        wood: {
+            type: 'wood',
+            roughness: 0.7,  // Reduced from 0.9
+            metalness: 0.1,  // Slight sheen
+            color: [0.6, 0.3, 0.1]
+        },
+        emissive: {
+            type: 'emissive',
+            roughness: 0.4,  // Add some surface detail
+            metalness: 0.2,  // Slight metallic quality
+            emission: 1.0,
+            color: [1.0, 0.6, 0.0]
+        }
     };
 
     // Create showcase objects
@@ -61,12 +89,11 @@ exports.init = function (api) {
         width: 30,
         height: 30,
         position: [0, -3, 0],
-        rotation: [0, -Math.PI / 2, 0],
         material: {
             type: 'metallic',
-            roughness: 0.1,
-            metalness: 0.9,
-            color: [0.2, 0.2, 0.2]
+            roughness: 0.05,
+            metalness: 1.0,
+            color: [0.15, 0.15, 0.15]
         }
     });
 };
@@ -96,8 +123,8 @@ exports.update = function (event) {
     });
 
     // Orbit camera
-    const cameraRadius = 40;
-    const cameraHeight = 15 + Math.sin(time * 0.5) * 5;
+    const cameraRadius = 33;
+    const cameraHeight = 20 + Math.sin(time * 0.5) * 5;
     const cameraX = Math.sin(time * 0.2) * cameraRadius;
     const cameraZ = Math.cos(time * 0.2) * cameraRadius;
 
