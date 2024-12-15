@@ -2,8 +2,8 @@
   "id": "render-test",
   "name": "render-test",
   "version": "1.0.0",
-  "active": false,
-  "description": "Basic WebGL cube renderer",
+  "active": true,
+  "description": "Showcase of various 3D meshes with different materials",
   "entry": {
     "type": "javascript",
     "script": "main.js",
@@ -16,17 +16,81 @@
       "id": "vertexShader",
       "type": "vertexShader",
       "source": {
-        "type": "relative",
-        "path": "vertex.glsl"
+        "type": "inline",
+        "data": "#version 300 es\nprecision highp float;\n\nin vec3 position;\nin vec3 normal;\nin vec2 uv;\n\nuniform mat4 uModelMatrix;\nuniform mat4 uViewMatrix;\nuniform mat4 uProjectionMatrix;\n\nout vec3 vNormal;\nout vec3 vPosition;\nout vec2 vUv;\nout vec3 vWorldPos;\n\nvoid main() {\n    vNormal = normalize((uModelMatrix * vec4(normal, 0.0)).xyz);\n    vec4 worldPosition = uModelMatrix * vec4(position, 1.0);\n    vPosition = worldPosition.xyz;\n    vWorldPos = worldPosition.xyz;\n    vUv = uv;\n    gl_Position = uProjectionMatrix * uViewMatrix * worldPosition;\n}"
       }
     },
     {
       "id": "fragmentShader",
       "type": "fragmentShader",
       "source": {
-        "type": "relative",
-        "path": "fragment.glsl"
+        "type": "inline",
+        "data": "#version 300 es\nprecision highp float;\n\n#define PI 3.14159265359\n\nin vec3 vNormal;\nin vec3 vPosition;\nin vec2 vUv;\nin vec3 vWorldPos;\n\nuniform vec3 uLightPosition;\nuniform vec3 uLightColor;\nuniform vec3 uObjectColor;\nuniform float uTime;\nuniform int uMaterialType;\nuniform float uRoughness;\nuniform float uMetalness;\nuniform float uEmission;\nuniform float uAlpha;\n\nout vec4 fragColor;\n\n// PBR functions\nfloat DistributionGGX(vec3 N, vec3 H, float roughness) {\n    float a = roughness * roughness;\n    float a2 = a * a;\n    float NdotH = max(dot(N, H), 0.0);\n    float NdotH2 = NdotH * NdotH;\n\n    float nom = a2;\n    float denom = (NdotH2 * (a2 - 1.0) + 1.0);\n    denom = PI * denom * denom;\n\n    return nom / denom;\n}\n\nfloat GeometrySchlickGGX(float NdotV, float roughness) {\n    float r = (roughness + 1.0);\n    float k = (r * r) / 8.0;\n\n    float nom = NdotV;\n    float denom = NdotV * (1.0 - k) + k;\n\n    return nom / denom;\n}\n\nfloat GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {\n    float NdotV = max(dot(N, V), 0.0);\n    float NdotL = max(dot(N, L), 0.0);\n    float ggx2 = GeometrySchlickGGX(NdotV, roughness);\n    float ggx1 = GeometrySchlickGGX(NdotL, roughness);\n\n    return ggx1 * ggx2;\n}\n\nvec3 fresnelSchlick(float cosTheta, vec3 F0) {\n    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);\n}\n\nvoid main() {\n    vec3 N = normalize(vNormal);\n    vec3 V = normalize(-vPosition);\n    vec3 L = normalize(uLightPosition - vWorldPos);\n    vec3 H = normalize(V + L);\n    \n    // Base material properties\n    vec3 albedo = uObjectColor;\n    float roughness = uRoughness;\n    float metallic = uMetalness;\n    float ao = 1.0;\n    \n    // Calculate reflectance at normal incidence\n    vec3 F0 = vec3(0.04);\n    F0 = mix(F0, albedo, metallic);\n    \n    // Cook-Torrance BRDF\n    float NDF = DistributionGGX(N, H, roughness);\n    float G = GeometrySmith(N, V, L, roughness);\n    vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);\n    \n    vec3 numerator = NDF * G * F;\n    float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0);\n    vec3 specular = numerator / max(denominator, 0.001);\n    \n    vec3 kS = F;\n    vec3 kD = vec3(1.0) - kS;\n    kD *= 1.0 - metallic;\n    \n    float NdotL = max(dot(N, L), 0.0);\n    \n    // Material-specific modifications\n    vec3 finalColor = (kD * albedo / PI + specular) * uLightColor * NdotL;\n    \n    // Add emission for emissive materials\n    if (uMaterialType == 4) { // Emissive\n        finalColor += albedo * uEmission;\n    }\n    \n    // Ambient lighting\n    vec3 ambient = vec3(0.03) * albedo * ao;\n    finalColor += ambient;\n    \n    // HDR tonemapping and gamma correction\n    finalColor = finalColor / (finalColor + vec3(1.0));\n    finalColor = pow(finalColor, vec3(1.0/2.2));\n    \n    fragColor = vec4(finalColor, uMaterialType == 2 ? uAlpha : 1.0);\n}"
       }
     }
-  ]
+  ],
+  "config": {
+    "uniforms": [
+      {
+        "name": "uModelMatrix",
+        "type": "mat4",
+        "defaultValue": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
+      },
+      {
+        "name": "uViewMatrix",
+        "type": "mat4",
+        "defaultValue": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
+      },
+      {
+        "name": "uProjectionMatrix",
+        "type": "mat4",
+        "defaultValue": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
+      },
+      {
+        "name": "uLightPosition",
+        "type": "vec3",
+        "defaultValue": [5, 5, 5]
+      },
+      {
+        "name": "uLightColor",
+        "type": "vec3",
+        "defaultValue": [1, 1, 1]
+      },
+      {
+        "name": "uObjectColor",
+        "type": "vec3",
+        "defaultValue": [0.5, 0.5, 0.5]
+      },
+      {
+        "name": "uTime",
+        "type": "float",
+        "defaultValue": 0.0
+      },
+      {
+        "name": "uMaterialType",
+        "type": "int",
+        "defaultValue": 0
+      },
+      {
+        "name": "uRoughness",
+        "type": "float",
+        "defaultValue": 0.5
+      },
+      {
+        "name": "uMetalness",
+        "type": "float",
+        "defaultValue": 0.0
+      },
+      {
+        "name": "uEmission",
+        "type": "float",
+        "defaultValue": 0.0
+      },
+      {
+        "name": "uAlpha",
+        "type": "float",
+        "defaultValue": 1.0
+      }
+    ]
+  }
 }

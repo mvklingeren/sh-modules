@@ -1,69 +1,106 @@
 exports.init = function (api) {
-    // Position light closer to the scene and from a better angle
-    GameAPI.scene.setUniform('uLightPosition', [10, 15, 10]);  // Closer, still from above
-    GameAPI.scene.setUniform('uLightColor', [1.2, 1.2, 1.2]); // Slightly intense white light
-    GameAPI.scene.setUniform('uObjectColor', [0.9, 0.9, 1.0]); // Brighter base color
+    GameAPI.debug('Starting mesh showcase demo');
 
-    GameAPI.debug('Starting cube grid demo with improved lighting');
-
-    // Position camera for better viewing angle
-    GameAPI.camera.setPosition(12, 15, 12);
+    // Initial camera setup for overview
+    const initialCameraPos = { x: 0, y: 0, z: 40 };
+    GameAPI.camera.setPosition(initialCameraPos.x, initialCameraPos.y, initialCameraPos.z);
     GameAPI.camera.lookAt(0, 0, 0);
+    exports.initialCameraPos = initialCameraPos;
 
-    // Create a 5x5x5 grid of cubes
-    const spacing = 3;
-    const gridSize = 5;
-    const offset = (gridSize * spacing) / 2;
+    // Define different materials
+    const materials = {
+        metallic: { type: 'metallic', roughness: 0.2, metalness: 0.8, color: [0.8, 0.8, 0.9] },
+        plastic: { type: 'plastic', roughness: 0.7, metalness: 0.0, color: [0.9, 0.2, 0.2] },
+        glass: { type: 'glass', roughness: 0.0, metalness: 0.1, color: [0.3, 0.8, 0.9], alpha: 0.5 },
+        wood: { type: 'wood', roughness: 0.9, metalness: 0.0, color: [0.6, 0.3, 0.1] },
+        emissive: { type: 'emissive', emission: 1.0, color: [1.0, 0.6, 0.0] }
+    };
 
-    for (let x = 0; x < gridSize; x++) {
-        for (let y = 0; y < gridSize; y++) {
-            for (let z = 0; z < gridSize; z++) {
-                const cubeId = `cube-${x}-${y}-${z}`;
+    // Create showcase objects
+    const showcases = [
+        { type: 'box', options: { width: 2, height: 2, depth: 2 }, material: materials.metallic },
+        { type: 'sphere', options: { radius: 1.2, segments: 32 }, material: materials.glass },
+        { type: 'cylinder', options: { radius: 1, height: 2.5, segments: 32 }, material: materials.plastic },
+        { type: 'cone', options: { radius: 1.2, height: 2.5, segments: 32 }, material: materials.wood },
+        { type: 'torus', options: { radius: 1.2, tubeRadius: 0.4, radialSegments: 32, tubularSegments: 24 }, material: materials.emissive },
+        // { type: 'plane', options: { width: 2, height: 2 }, material: materials.metallic }
+    ];
 
-                // Create cube
-                GameAPI.scene.createObject('box', cubeId, {
-                    width: 1,
-                    height: 1,
-                    depth: 1
-                });
+    // Calculate grid layout
+    const spacing = 5;
+    const itemsPerRow = 3;
+    const rows = Math.ceil(showcases.length / itemsPerRow);
+    const totalWidth = (itemsPerRow - 1) * spacing;
+    const totalDepth = (rows - 1) * spacing;
+    const startX = -totalWidth / 2;
+    const startZ = -totalDepth / 2;
 
-                // Position cube in grid
-                GameAPI.scene.setPosition(cubeId, 
-                    x * spacing - offset,
-                    y * spacing - offset,
-                    z * spacing - offset
-                );
+    // Store initial positions for animation
+    exports.objectPositions = {};
 
-                // Create more vibrant colors with better contrast
-                const r = x / gridSize;
-                const g = y / gridSize;
-                const b = z / gridSize;
-                GameAPI.scene.setUniform('uObjectColor', [r * 1.2, g * 1.2, b * 1.2]); // Boost color intensity
-            }
+    // Create objects in grid
+    showcases.forEach((showcase, index) => {
+        const row = Math.floor(index / itemsPerRow);
+        const col = index % itemsPerRow;
+        const x = startX + col * spacing;
+        const z = startZ + row * spacing;
+
+        const id = `showcase-${showcase.type}-${index}`;
+        GameAPI.scene.createObject(showcase.type, id, {
+            ...showcase.options,
+            position: [x, 0, z],
+            material: showcase.material
+        });
+
+        // Store initial position for animation
+        exports.objectPositions[id] = { x, y: 0, z };
+    });
+
+    // Create ground plane for reflections
+    GameAPI.scene.createObject('plane', 'ground', {
+        width: 30,
+        height: 30,
+        position: [0, -3, 0],
+        rotation: [0, -Math.PI / 2, 0],
+        material: {
+            type: 'metallic',
+            roughness: 0.1,
+            metalness: 0.9,
+            color: [0.2, 0.2, 0.2]
         }
-    }
-
-    GameAPI.debug('Cube grid created with enhanced colors');
+    });
 };
 
 exports.update = function (event) {
-    // Slower rotation for better light observation
     const time = event.time * 0.5;
-    const gridSize = 5;
 
-    for (let x = 0; x < gridSize; x++) {
-        for (let y = 0; y < gridSize; y++) {
-            for (let z = 0; z < gridSize; z++) {
-                const cubeId = `cube-${x}-${y}-${z}`;
+    // Animate each showcase object
+    Object.entries(exports.objectPositions).forEach(([id, basePos]) => {
+        const index = parseInt(id.split('-').pop());
+        const rotationSpeed = 0.5 + index * 0.2;
+        const bounceHeight = Math.sin(time * 2 + index) * 0.5;
 
-                // More gentle rotation speeds
-                const rotationSpeed = ((x + y + z) / (gridSize * 3)) * 0.3;
-                GameAPI.scene.setRotation(cubeId, 
-                    time * rotationSpeed,
-                    time * rotationSpeed * 0.7,
-                    time * rotationSpeed * 0.5
-                );
-            }
-        }
-    }
+        // Update position with bounce
+        GameAPI.scene.setPosition(id,
+            basePos.x,
+            basePos.y + bounceHeight,
+            basePos.z
+        );
+
+        // Update rotation
+        GameAPI.scene.setRotation(id,
+            time * rotationSpeed,
+            time * rotationSpeed * 0.7,
+            time * rotationSpeed * 0.3
+        );
+    });
+
+    // Orbit camera
+    const cameraRadius = 40;
+    const cameraHeight = 15 + Math.sin(time * 0.5) * 5;
+    const cameraX = Math.sin(time * 0.2) * cameraRadius;
+    const cameraZ = Math.cos(time * 0.2) * cameraRadius;
+
+    GameAPI.camera.setPosition(cameraX, cameraHeight, cameraZ);
+    GameAPI.camera.lookAt(0, 0, 0);
 };
