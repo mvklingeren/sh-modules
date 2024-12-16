@@ -59,11 +59,11 @@ exports.init = function (api) {
             if (typeof inputEvent.movementX === 'number' &&
                 typeof inputEvent.movementY === 'number') {
 
-        // Update yaw (left/right rotation)
+                // Update yaw (left/right rotation)
                 yaw -= inputEvent.movementX * LOOK_SPEED;
 
-                // Update pitch (up/down rotation) with clamping
-                pitch -= inputEvent.movementY * LOOK_SPEED;
+                // Update pitch (up/down rotation)
+                pitch += inputEvent.movementY * LOOK_SPEED;
                 pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, pitch));
 
                 // Update all camera vectors based on new rotation
@@ -91,36 +91,40 @@ exports.update = function (event) {
     let dx = 0, dy = 0, dz = 0;
     const moveAmount = MOVE_SPEED * deltaTime;
 
-    // Handle keyboard movement using cached vectors
-    if (keys['KeyW']) {
-        const movement = GameAPI.vector.multiply(forward, moveAmount);
+    // Calculate flat forward and right vectors for movement (ignore Y component)
+    const flatForward = [forward[0], 0, forward[2]];
+    const flatRight = [right[0], 0, right[2]];
+
+    // Normalize the flat vectors to maintain consistent movement speed
+    const normalizedFlatForward = GameAPI.vector.normalize(flatForward);
+    const normalizedFlatRight = GameAPI.vector.normalize(flatRight);
+
+    // Handle keyboard movement using normalized flat vectors
+    if (keys['KeyS']) { // Forward
+        const movement = GameAPI.vector.multiply(normalizedFlatForward, -moveAmount);
         dx += movement[0];
-        dy += movement[1];
         dz += movement[2];
     }
-    if (keys['KeyS']) {
-        const movement = GameAPI.vector.multiply(forward, -moveAmount);
+    if (keys['KeyW']) { // Backward
+        const movement = GameAPI.vector.multiply(normalizedFlatForward, moveAmount);
         dx += movement[0];
-        dy += movement[1];
         dz += movement[2];
     }
-    if (keys['KeyD']) {
-        const movement = GameAPI.vector.multiply(right, moveAmount);
+    if (keys['KeyD']) { // Strafe Left
+        const movement = GameAPI.vector.multiply(normalizedFlatRight, -moveAmount);
         dx += movement[0];
-        dy += movement[1];
         dz += movement[2];
     }
-    if (keys['KeyA']) {
-        const movement = GameAPI.vector.multiply(right, -moveAmount);
+    if (keys['KeyA']) { // Strafe Right
+        const movement = GameAPI.vector.multiply(normalizedFlatRight, moveAmount);
         dx += movement[0];
-        dy += movement[1];
         dz += movement[2];
     }
-    if (keys['KeyQ']) {
-        dy += moveAmount; // Direct vertical movement
+    if (keys['KeyQ']) { // Up
+        dy += moveAmount;
     }
-    if (keys['KeyZ']) {
-        dy -= moveAmount; // Direct vertical movement
+    if (keys['KeyZ']) { // Down
+        dy -= moveAmount;
     }
 
     // Update position if there's any movement
