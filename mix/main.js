@@ -77,7 +77,7 @@ exports.init = function (api) {
         heightmap[x] = [];
         for (let z = 0; z < WORLD_SIZE; z++) {
             let height = Math.floor(
-                (noise2DOctaves(x, z, 4) + 1) * 4 +
+                (noise2DOctaves(x, z, 4) + 1) * 4 + 
                 Math.abs(noise2D(x * 2, z * 2)) * 2
             );
             heightmap[x][z] = height;
