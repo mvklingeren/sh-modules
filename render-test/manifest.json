@@ -49,7 +49,7 @@
       {
         "name": "uLightPosition",
         "type": "vec3",
-        "defaultValue": [2, 2, 5]
+        "defaultValue": [2, -19, 50]
       },
       {
         "name": "uLightColor",
