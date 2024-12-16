@@ -128,6 +128,6 @@ exports.update = function (event) {
     const cameraX = Math.sin(time * 0.2) * cameraRadius;
     const cameraZ = Math.cos(time * 0.2) * cameraRadius;
 
-    GameAPI.camera.setPosition(cameraX, cameraHeight, cameraZ);
-    GameAPI.camera.lookAt(0, 0, 0);
+    // GameAPI.camera.setPosition(cameraX, cameraHeight, cameraZ);
+    // GameAPI.camera.lookAt(0, 0, 0);
 };

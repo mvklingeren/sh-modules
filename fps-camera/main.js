@@ -7,49 +7,37 @@ const INITIAL_POSITION = [0, 2, 5];
 let keys = {};
 let pitch = 0;
 let yaw = 0;
-let isPointerLocked = false;
 
 exports.init = function (api) {
+    GameAPI.debug("FPS Camera initializing...");
+
     // Set initial camera position
     GameAPI.camera.setPosition(INITIAL_POSITION[0], INITIAL_POSITION[1], INITIAL_POSITION[2]);
 
-    // Setup pointer lock
-    const canvas = document.querySelector('canvas');
+    // Setup input handling
+    GameAPI.addEventListener('input', (data) => {
+        const inputEvent = data.event;
 
-    canvas.addEventListener('click', () => {
-        canvas.requestPointerLock();
-    });
+        switch (inputEvent.type) {
+            case 'mousemove':
+                yaw -= inputEvent.movementX * LOOK_SPEED;
+                pitch -= inputEvent.movementY * LOOK_SPEED;
+                pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
+                updateCameraRotation();
+                break;
 
-    document.addEventListener('pointerlockchange', () => {
-        isPointerLocked = document.pointerLockElement === canvas;
-    });
+            case 'keydown':
+                keys[inputEvent.code] = true;
+                break;
 
-    // Mouse movement handler
-    document.addEventListener('mousemove', (event) => {
-        if (!isPointerLocked) return;
-
-        // Update rotation
-        yaw -= event.movementX * LOOK_SPEED;
-        pitch -= event.movementY * LOOK_SPEED;
-
-        // Clamp pitch to prevent camera flipping
-        pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
-
-        updateCameraRotation();
-    });
-
-    // Key handlers
-    document.addEventListener('keydown', (event) => {
-        keys[event.code] = true;
-    });
-
-    document.addEventListener('keyup', (event) => {
-        keys[event.code] = false;
+            case 'keyup':
+                keys[inputEvent.code] = false;
+                break;
+        }
     });
 };
 
 function updateCameraRotation() {
-    // Convert Euler angles to direction vector
     const cosPitch = Math.cos(pitch);
     const direction = [
         Math.sin(yaw) * cosPitch,
@@ -57,24 +45,26 @@ function updateCameraRotation() {
         Math.cos(yaw) * cosPitch
     ];
 
-    // Get current position
     const pos = GameAPI.camera.getPosition();
-
-    // Look at point in direction
-    GameAPI.camera.lookAt(
-        pos.x + direction[0],
-        pos.y + direction[1],
-        pos.z + direction[2]
-    );
+    if (Array.isArray(pos)) {
+        GameAPI.camera.lookAt(
+            pos[0] + direction[0],
+            pos[1] + direction[1],
+            pos[2] + direction[2]
+        );
+    }
 }
 
 exports.update = function (event) {
-    if (!isPointerLocked) return;
-
     const deltaTime = event.deltaTime;
     const pos = GameAPI.camera.getPosition();
 
-    // Calculate forward and right vectors
+    // Early return if position is invalid
+    if (!Array.isArray(pos) || pos.some(isNaN)) {
+        GameAPI.debug("Invalid camera position detected");
+        return;
+    }
+
     const forward = [
         Math.sin(yaw),
         0,
@@ -87,7 +77,6 @@ exports.update = function (event) {
         -Math.sin(yaw)
     ];
 
-    // Movement
     let dx = 0, dy = 0, dz = 0;
     const moveAmount = MOVE_SPEED * deltaTime;
 
@@ -117,10 +106,15 @@ exports.update = function (event) {
         dy -= moveAmount;
     }
 
-    // Update position
-    GameAPI.camera.setPosition(
-        pos.x + dx,
-        pos.y + dy,
-        pos.z + dz
-    );
+    // Only update if there's actual movement and calculations are valid
+    if ((dx !== 0 || dy !== 0 || dz !== 0) &&
+        !isNaN(dx) && !isNaN(dy) && !isNaN(dz) &&
+        !isNaN(pos[0]) && !isNaN(pos[1]) && !isNaN(pos[2])) {
+
+        GameAPI.camera.setPosition(
+            pos[0] + dx,
+            pos[1] + dy,
+            pos[2] + dz
+        );
+    }
 };
