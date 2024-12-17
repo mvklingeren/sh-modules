@@ -2,7 +2,7 @@
   "id": "render-test",
   "name": "render-test",
   "version": "1.0.0",
-  "active": true,
+  "active": false,
   "description": "Showcase of various 3D meshes with different materials",
   "entry": {
     "type": "javascript",
