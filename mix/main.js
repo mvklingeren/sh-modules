@@ -2,21 +2,25 @@
 const materials = {
     grass: {
         type: 'plastic',
+        demo: true,
         roughness: 0.9,
-        metalness: 0.0,
-        color: [0.4, 0.8, 0.3]
+        metalness: 1.0,
+        color: [0.4, 0.8, 0.3],
+        diffuseMap: 'grass_diffuse'  // Keep only this texture reference
     },
     dirt: {
         type: 'plastic',
         roughness: 0.95,
         metalness: 0.0,
-        color: [0.6, 0.4, 0.2]
+        color: [0.6, 0.4, 0.2],
+        diffuseMap: 'dirt_diffuse'
     },
     stone: {
         type: 'metallic',
         roughness: 0.7,
         metalness: 0.3,
-        color: [0.6, 0.6, 0.6]
+        color: [0.6, 0.6, 0.6],
+        diffuseMap: 'stone_diffuse'
     },
     water: {
         type: 'glass',
@@ -187,8 +191,8 @@ function createCrystalCluster(x, y, z) {
 exports.init = function (api) {
     GameAPI.debug('Initializing magical voxel world...');
 
-    const WORLD_SIZE = 32;
-    const WATER_LEVEL = 2;
+    const WORLD_SIZE = 8;
+    const WATER_LEVEL = 1;
 
     // Set initial camera position for overview
     GameAPI.camera.setPosition(WORLD_SIZE / 2, WORLD_SIZE * 0.8, WORLD_SIZE * 1.2);
@@ -220,7 +224,7 @@ exports.init = function (api) {
                 } else if (y > height - 3) {
                     material = materials.dirt;
                 } else {
-                    material = materials.stone;
+                    material = materials.grass;
                 }
 
                 GameAPI.scene.createObject('box', `block-${x}-${y}-${z}`, {
