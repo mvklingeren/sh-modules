@@ -134,8 +134,8 @@ function createMagicalTree(x, y, z, colorScheme) {
 }
 
 function createRainbow(startX, startY, startZ, length) {
-    const segments = 20;
-    const radius = 0.2;
+    const segments = 40;
+    const radius = 0.6;
 
     for (let i = 0; i < segments; i++) {
         const t = i / segments;
@@ -188,22 +188,69 @@ function createCrystalCluster(x, y, z) {
     }
 }
 
-const WORLD_SIZE = 128; // Increased for better terrain visualization
-const WATER_LEVEL = 1;
+const WORLD_SIZE = 2048;
+let cameraState = {
+    position: [0, 0, 0],
+    direction: 0,
+    pitch: -0.3,
+    roll: 0,
+    turnTimer: 0,
+    verticalTimer: 0,
+    isInitializing: true,
+    targetHeight: 120,
+    verticalDirection: 0
+};
+
+// Move getTerrainHeight outside of init
+function getTerrainHeight(x, z) {
+    const terrainPosition = [-WORLD_SIZE / 2, -10, -WORLD_SIZE / 2];
+    // Convert from world coordinates to local terrain coordinates
+    const localX = x - terrainPosition[0];
+    const localZ = z - terrainPosition[2];
+    return (noise2DOctaves(localX * 0.02, localZ * 0.02, 4) * 20.0) + terrainPosition[1];
+}
+
+function startNewFlightPath() {
+    const currentPos = GameAPI.camera.getPosition();
+    const currentRot = GameAPI.camera.getRotation();
+
+    // Calculate next target using current rotation for more natural paths
+    const targetDistance = 150 + Math.random() * 200;
+    const targetAngle = currentRot[1] + (Math.random() - 0.5) * Math.PI * 0.5;
+    const targetHeight = 40 + Math.random() * 30;
+
+    const targetX = currentPos[0] + Math.cos(targetAngle) * targetDistance;
+    const targetZ = currentPos[2] + Math.sin(targetAngle) * targetDistance;
+
+    // Handle world wrapping
+    const halfSize = WORLD_SIZE;
+    const wrappedX = ((targetX + halfSize) % WORLD_SIZE) - halfSize;
+    const wrappedZ = ((targetZ + halfSize) % WORLD_SIZE) - halfSize;
+
+    const targetPosition = [wrappedX, targetHeight, wrappedZ];
+    const targetRotation = [-0.2 + Math.random() * 0.1, targetAngle, 0];
+
+    GameAPI.camera.setTarget(
+        targetPosition,
+        targetRotation,
+        'quadratic',  // This matches the enum value
+        8000
+    );
+}
 
 exports.init = function (api) {
     GameAPI.debug('Initializing magical voxel world...');
 
-    const terrainPosition = [-WORLD_SIZE / 2, -2, -WORLD_SIZE / 2];
+    const terrainPosition = [-WORLD_SIZE / 2, -10, -WORLD_SIZE / 2];
 
-    // First create the terrain
+    // Create the terrain first
     GameAPI.scene.createObject('terrain', 'main-terrain', {
         width: WORLD_SIZE,
         depth: WORLD_SIZE,
         resolution: 100,
         position: terrainPosition,
         options: {
-            heightScale: 8.0,
+            heightScale: 20.0,
             smoothness: 2.0,
             seed: Math.random() * 10000
         },
@@ -219,32 +266,14 @@ exports.init = function (api) {
     const terrainCenterX = terrainPosition[0] + WORLD_SIZE / 2;
     const terrainCenterZ = terrainPosition[2] + WORLD_SIZE / 2;
 
-    // Set initial camera position and rotation to match the working values
-    // GameAPI.camera.setPosition(
-    //     terrainCenterX,
-    //     340,
-    //     terrainCenterZ
-    // );
-
-    GameAPI.camera.setRotation(
-        -0.028, // pitch
-        -0.6848, // yaw
-        0 // roll
-    );
-
-    // Add decorative elements on the terrain - adjusted positions to account for terrain offset
+    // Add decorative elements on the terrain
     for (let i = 0; i < 20; i++) {
-        // Calculate position relative to terrain
-        const localX = Math.random() * WORLD_SIZE;
-        const localZ = Math.random() * WORLD_SIZE;
+        // Calculate world coordinates directly
+        const worldX = terrainPosition[0] + Math.random() * WORLD_SIZE;
+        const worldZ = terrainPosition[2] + Math.random() * WORLD_SIZE;
 
-        // Sample height from noise function using local coordinates
-        const heightAtPoint = noise2DOctaves(localX, localZ, 4) * 8;
-
-        // Convert to world coordinates by adding terrain offset
-        const worldX = localX + terrainPosition[0];
-        const worldZ = localZ + terrainPosition[2];
-        const worldY = heightAtPoint - terrainPosition[1]; // Adjust for terrain Y offset
+        // Get the actual height at this point
+        const worldY = getTerrainHeight(worldX, worldZ);
 
         if (Math.random() < 0.5) {
             const colorScheme = treeColors[Math.floor(Math.random() * treeColors.length)];
@@ -254,34 +283,31 @@ exports.init = function (api) {
         }
     }
 
-    // Adjust rainbow positions as well
+    // Adjust rainbow positions
     for (let i = 0; i < 3; i++) {
-        const localX = Math.random() * WORLD_SIZE;
-        const localZ = Math.random() * WORLD_SIZE;
-        const worldX = localX + terrainPosition[0];
-        const worldZ = localZ + terrainPosition[2];
-        const y = 15; // Increased height to be well above terrain
+        const worldX = terrainPosition[0] + Math.random() * WORLD_SIZE;
+        const worldZ = terrainPosition[2] + Math.random() * WORLD_SIZE;
+        const baseHeight = getTerrainHeight(worldX, worldZ);
+        const y = baseHeight + 30; // Position rainbows 30 units above terrain
         createRainbow(worldX, y, worldZ, 5 + Math.random() * 5);
     }
-    //GameAPI.camera.loo
 
-    // Animate to a slightly closer view while maintaining the same angle
-    GameAPI.camera.setTarget(
-        [
-            terrainCenterX - 100,
-            65,  // Slightly lower
-            terrainCenterZ + 50  // Slightly closer
-        ],
-        [-0.028, -2.6848, 0],  // Keep the same rotation
-        {
-            movementType: 'cubic',
-            duration: 2000
-        }
-    );
+    // Start at a lower height
+    cameraState.position[1] = 60;
+    cameraState.targetHeight = 60;
+
+    // Set up the callback for planning the next path
+    GameAPI.camera.setNearingTargetEndCallback(() => {
+        console.log('Planning next path...'); // Add debug logging
+        startNewFlightPath();
+    });
+
+    startNewFlightPath();
 };
 
 exports.update = function (event) {
     const time = event.time;
+    const deltaTime = event.deltaTime;
 
     // Create a subtle shifting background color
     const r = 0.529 + Math.sin(time * 0.5) * 0.1;
@@ -289,17 +315,6 @@ exports.update = function (event) {
     const b = 0.922 + Math.sin(time * 0.7) * 0.1;
     GameAPI.scene.setClearColor(r, g, b);
 
-    // Animate water plane
-    const waterHeight = WATER_LEVEL + Math.sin(time) * 0.1;
-    GameAPI.scene.setPosition('water-plane', -WORLD_SIZE / 2, waterHeight, -WORLD_SIZE / 2);
-
-    // Animate water
-    const waterBlocks = Object.keys(GameAPI.scene).filter(id => id.startsWith('water-'));
-    waterBlocks.forEach(id => {
-        const [_, x, y, z] = id.split('-').map(Number);
-        const offset = Math.sin(time * 2 + x * 0.5 + z * 0.5) * 0.05;
-        GameAPI.scene.setScale(id, 1, 1 + offset, 1);
-    });
 
     // Animate crystals
     const crystalBlocks = Object.keys(GameAPI.scene).filter(id => id.startsWith('crystal-'));
