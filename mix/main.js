@@ -1,338 +1,286 @@
-// Enhanced materials with more vibrant colors
+// Enhanced materials with dramatic effects
 const materials = {
-    grass: {
-        type: 'plastic',
-        demo: true,
-        roughness: 0.9,
-        metalness: 1.0,
-        color: [0.4, 0.8, 0.3],
-        diffuseMap: 'grass_diffuse'  // Keep only this texture reference
-    },
-    dirt: {
-        type: 'plastic',
-        roughness: 0.95,
-        metalness: 0.0,
-        color: [0.6, 0.4, 0.2],
-        diffuseMap: 'dirt_diffuse'
-    },
-    stone: {
+    terrain: {
         type: 'metallic',
         roughness: 0.7,
         metalness: 0.3,
-        color: [0.6, 0.6, 0.6],
-        diffuseMap: 'stone_diffuse'
+        color: [0.4, 0.6, 0.45],
+        emission: 0.2,
+        vertexShader: 'defaultVertexShader',
+        fragmentShader: 'defaultFragmentShader'
     },
-    water: {
-        type: 'glass',
+    crystalGold: {
+        type: 'metallic',
         roughness: 0.1,
-        metalness: 0.3,
-        color: [0.2, 0.5, 0.9],
-        alpha: 0.8
+        metalness: 1.0,
+        color: [1.0, 0.9, 0.4],
+        emission: 0.4
     },
-    crystal: {
+    crystalGlass: {
         type: 'glass',
         roughness: 0.1,
         metalness: 0.9,
-        color: [1.0, 0.2, 0.8],
-        alpha: 0.7
+        color: [0.4, 0.9, 1.0],
+        alpha: 0.4,
+        emission: 0.6
     },
-    rainbow: {
+    water: {
+        type: 'glass',
+        roughness: 0.05,
+        metalness: 0.9,
+        color: [0.2, 0.5, 1.0],
+        alpha: 0.7,
+        emission: 0.3
+    },
+    energyCore: {
         type: 'emissive',
-        roughness: 0.3,
-        metalness: 0.8,
-        emission: 0.5,
-        color: [1.0, 0.3, 0.7]
-    },
-    gold: {
-        type: 'metallic',
         roughness: 0.2,
         metalness: 1.0,
-        color: [1.0, 0.8, 0.0]
+        emission: 2.0,
+        color: [1.0, 0.4, 0.8]
+    },
+    sky: {
+        type: 'emissive',
+        roughness: 0.0,
+        metalness: 0.0,
+        emission: 1.0,
+        color: [1.0, 1.0, 1.0],
+        depthWrite: false,
+        depthTest: false,
+        cullFace: 'front',
+        vertexShader: 'skyVertexShader',
+        fragmentShader: 'skyFragmentShader'
     }
 };
 
-// Tree color variations
-const treeColors = [
-    { wood: [0.7, 0.3, 0.5], leaves: [1.0, 0.4, 0.7] }, // Pink tree
-    { wood: [0.3, 0.5, 0.7], leaves: [0.4, 0.7, 1.0] }, // Blue tree
-    { wood: [0.8, 0.4, 0.0], leaves: [1.0, 0.8, 0.2] }, // Golden tree
-    { wood: [0.5, 0.2, 0.8], leaves: [0.8, 0.4, 1.0] }, // Purple tree
-];
-
-function noise2D(x, z) {
-    return (Math.sin(x * 0.1) + Math.sin(z * 0.1)) * 0.5;
+// Create terrain with more dramatic height variation
+function createTerrain(x, z, width, depth) {
+    console.log("Creating terrain with params:", { x, z, width, depth });
+    GameAPI.scene.createObject('terrain', 'main-terrain', {
+        width: width,
+        depth: depth,
+        resolution: 128,
+        position: [x, -50, z],
+        options: {
+            heightScale: 120.0,
+            smoothness: 1.2,
+            seed: Math.random() * 10000
+        },
+        material: materials.terrain
+    });
 }
 
-function noise2DOctaves(x, z, octaves) {
-    let result = 0;
-    let amplitude = 1;
-    let frequency = 1;
-    let maxValue = 0;
+// Create crystal formation with mixed materials
+function createCrystalFormation(x, y, z, scale = 1.0) {
+    const baseHeight = 8 * scale;
+    const crystalCount = 7 + Math.floor(Math.random() * 5);
 
-    for (let i = 0; i < octaves; i++) {
-        result += noise2D(x * frequency, z * frequency) * amplitude;
-        maxValue += amplitude;
-        amplitude *= 0.5;
-        frequency *= 2;
-    }
-
-    return result / maxValue;
-}
-
-function createMagicalTree(x, y, z, colorScheme) {
-    const treeHeight = 4 + Math.floor(Math.random() * 3);
-
-    // Twisty trunk
-    for (let i = 0; i < treeHeight; i++) {
-        const twist = Math.sin(i * 0.8) * 0.3;
-        const scale = 1.0 - (i / treeHeight) * 0.3;
-        GameAPI.scene.createObject('cylinder', `trunk-${x}-${y + i}-${z}`, {
-            radius: 0.15 * scale,
-            height: 1.0,
-            segments: 8,
-            position: [x + twist, y + i, z + twist],
-            material: {
-                type: 'wood',
-                roughness: 0.8,
-                metalness: 0.2,
-                color: colorScheme.wood
-            }
-        });
-    }
-
-    // Magical leaves using different shapes
-    const shapes = ['sphere', 'torus', 'box'];
-    let leafCount = 0;
-
-    for (let ly = 0; ly < 3; ly++) {
-        const radius = 2 - ly * 0.5;
-        const angleStep = (Math.PI * 2) / (6 + ly * 2);
-
-        for (let angle = 0; angle < Math.PI * 2; angle += angleStep) {
-            const lx = Math.cos(angle) * radius;
-            const lz = Math.sin(angle) * radius;
-            const shape = shapes[leafCount % shapes.length];
-
-            GameAPI.scene.createObject(shape, `leaves-${x}-${y + treeHeight + ly}-${z}-${leafCount}`, {
-                radius: 0.3 + Math.random() * 0.2,
-                width: 0.6,
-                height: 0.6,
-                depth: 0.6,
-                tubeRadius: 0.1,
-                position: [x + lx, y + treeHeight + ly, z + lz],
-                material: {
-                    type: 'plastic',
-                    roughness: 0.6,
-                    metalness: 0.3,
-                    emission: 0.2,
-                    color: colorScheme.leaves
-                }
-            });
-            leafCount++;
-        }
-    }
-}
-
-function createRainbow(startX, startY, startZ, length) {
-    const segments = 40;
-    const radius = 0.6;
-
-    for (let i = 0; i < segments; i++) {
-        const t = i / segments;
-        const angle = t * Math.PI;
-        const height = Math.sin(angle) * length;
-        const depth = Math.cos(angle) * length;
-
-        GameAPI.scene.createObject('torus', `rainbow-${startX}-${startY}-${startZ}-${i}`, {
-            radius: radius * (1 - t * 0.5),
-            tubeRadius: 0.05,
-            radialSegments: 16,
-            tubularSegments: 8,
-            position: [startX, startY + height, startZ + depth],
-            material: {
-                ...materials.rainbow,
-                color: [
-                    Math.sin(t * Math.PI * 2) * 0.5 + 0.5,
-                    Math.sin(t * Math.PI * 2 + Math.PI * 2 / 3) * 0.5 + 0.5,
-                    Math.sin(t * Math.PI * 2 + Math.PI * 4 / 3) * 0.5 + 0.5
-                ]
-            }
-        });
-    }
-}
-
-function createCrystalCluster(x, y, z) {
-    const crystalCount = 3 + Math.floor(Math.random() * 4);
+    // Create central energy core
+    GameAPI.scene.createObject('sphere', `energy-core-${x}-${z}`, {
+        radius: scale * 2,
+        segments: 32,
+        position: [x, y + 2, z],
+        material: materials.energyCore
+    });
 
     for (let i = 0; i < crystalCount; i++) {
         const angle = (i / crystalCount) * Math.PI * 2;
-        const radius = 0.3 + Math.random() * 0.2;
-        const height = 1.0 + Math.random() * 1.0;
-        const offsetX = Math.cos(angle) * 0.3;
-        const offsetZ = Math.sin(angle) * 0.3;
+        const radius = (3 + Math.random() * 3) * scale;
+        const height = (baseHeight + Math.random() * baseHeight) * scale;
 
-        GameAPI.scene.createObject('cone', `crystal-${x}-${y}-${z}-${i}`, {
-            radius: radius,
+        const px = x + Math.cos(angle) * radius;
+        const pz = z + Math.sin(angle) * radius;
+        const py = y + Math.random() * 3;
+
+        // Alternate between gold and glass crystals
+        const material = i % 2 === 0 ? materials.crystalGold : materials.crystalGlass;
+
+        GameAPI.scene.createObject('cone', `crystal-${x}-${z}-${i}`, {
+            radius: 0.8 * scale,
             height: height,
-            segments: 6,
-            position: [x + offsetX, y, z + offsetZ],
+            segments: 8,
+            position: [px, py, pz],
+            rotation: [
+                Math.random() * 0.4,
+                angle,
+                0.3 + Math.random() * 0.3
+            ],
             material: {
-                ...materials.crystal,
-                color: [
-                    0.7 + Math.random() * 0.3,
-                    0.2 + Math.random() * 0.3,
-                    0.5 + Math.random() * 0.5
-                ]
+                ...material,
+                color: i % 2 === 0
+                    ? [1.0, 0.7 + Math.random() * 0.3, 0.2] // Gold variations
+                    : [0.3, 0.7 + Math.random() * 0.3, 1.0] // Glass variations
             }
         });
     }
 }
 
-const WORLD_SIZE = 2048;
-let cameraState = {
-    position: [0, 0, 0],
-    direction: 0,
-    pitch: -0.3,
-    roll: 0,
-    turnTimer: 0,
-    verticalTimer: 0,
-    isInitializing: true,
-    targetHeight: 120,
-    verticalDirection: 0
-};
-
-// Move getTerrainHeight outside of init
-function getTerrainHeight(x, z) {
-    const terrainPosition = [-WORLD_SIZE / 2, -10, -WORLD_SIZE / 2];
-    // Convert from world coordinates to local terrain coordinates
-    const localX = x - terrainPosition[0];
-    const localZ = z - terrainPosition[2];
-    return (noise2DOctaves(localX * 0.02, localZ * 0.02, 4) * 20.0) + terrainPosition[1];
+// Create larger water body with effects
+function createWaterSurface(x, y, z, width, depth) {
+    GameAPI.scene.createObject('plane', 'water-surface', {
+        width: width,
+        height: depth,
+        widthSegments: 64,
+        heightSegments: 64,
+        position: [x, y, z],
+        material: materials.water
+    });
 }
 
+// Add sky creation function
+function createSky(radius) {
+// GameAPI.scene.createObject('sphere', 'sky-sphere', {
+//     radius: radius,
+//     segments: 64,
+//     position: [0, 0, 0],
+//     invertNormals: true,
+//     material: {
+//         ...materials.sky,
+//         program: 'sky',
+//         cullFace: 'front',
+//         depthTest: false,
+//         depthWrite: false,
+//         emission: 1.0,
+//         color: [1.0, 1.0, 1.0]
+//     }
+// });
+}
+
+// Add at the top with other state variables
+let lastTargetTime = 0;
+const TARGET_COOLDOWN = 1000; // 1 second cooldown
+let isPathActive = true; // Add this flag to control the path system
+
 function startNewFlightPath() {
-    const currentPos = GameAPI.camera.getPosition();
-    const currentRot = GameAPI.camera.getRotation();
+    if (!isPathActive) return;
 
-    // Calculate next target using current rotation for more natural paths
-    const targetDistance = 150 + Math.random() * 200;
-    const targetAngle = currentRot[1] + (Math.random() - 0.5) * Math.PI * 0.5;
-    const targetHeight = 40 + Math.random() * 30;
+    const currentTime = performance.now();
 
-    const targetX = currentPos[0] + Math.cos(targetAngle) * targetDistance;
-    const targetZ = currentPos[2] + Math.sin(targetAngle) * targetDistance;
+    // Check if enough time has passed since last target
+    if (currentTime - lastTargetTime < TARGET_COOLDOWN) {
+        console.log('Skipping new target - cooldown active');
+        setTimeout(startNewFlightPath, TARGET_COOLDOWN);
+        return;
+    }
 
-    // Handle world wrapping
-    const halfSize = WORLD_SIZE;
-    const wrappedX = ((targetX + halfSize) % WORLD_SIZE) - halfSize;
-    const wrappedZ = ((targetZ + halfSize) % WORLD_SIZE) - halfSize;
+    const radius = 150 + Math.random() * 50;
+    const height = 40 + Math.random() * 30;
+    const angle = Math.random() * Math.PI * 2;
 
-    const targetPosition = [wrappedX, targetHeight, wrappedZ];
-    const targetRotation = [-0.2 + Math.random() * 0.1, targetAngle, 0];
+    const targetPos = [
+        Math.cos(angle) * radius,
+        height,
+        Math.sin(angle) * radius
+    ];
 
-    GameAPI.camera.setTarget(
-        targetPosition,
-        targetRotation,
-        'quadratic',  // This matches the enum value
-        8000
-    );
+    lastTargetTime = currentTime;
+
+    // GameAPI.camera.setTarget(
+    //     targetPos,
+    //     [-0.3 + Math.random() * 0.2, angle + Math.PI, 0],
+    //     'quadratic',
+    //     15000
+    // );
+
+    // Set up the next target callback
+    // GameAPI.camera.setNearingTargetEndCallback(() => {
+    //     if (isPathActive) {
+    //         setTimeout(() => {
+    //             console.log('Starting new flight path...');
+    //             startNewFlightPath();
+    //         }, 100);
+    //     }
+    // });
 }
 
 exports.init = function (api) {
-    GameAPI.debug('Initializing magical voxel world...');
+    GameAPI.debug('Initializing Enhanced Terrain Demo...');
 
-    const terrainPosition = [-WORLD_SIZE / 2, -10, -WORLD_SIZE / 2];
+    // Create scene objects first
+    const worldSize = 800;
+    createTerrain(-worldSize / 2, -worldSize / 2, worldSize, worldSize);
+    createWaterSurface(0, -15, 0, worldSize * 0.4, worldSize * 0.4);
 
-    // Create the terrain first
-    GameAPI.scene.createObject('terrain', 'main-terrain', {
-        width: WORLD_SIZE,
-        depth: WORLD_SIZE,
-        resolution: 100,
-        position: terrainPosition,
-        options: {
-            heightScale: 20.0,
-            smoothness: 2.0,
-            seed: Math.random() * 10000
-        },
-        material: {
-            ...materials.grass,
-            roughness: 0.8,
-            metalness: 0.1,
-            color: [0.3, 0.7, 0.3]
-        }
-    });
-
-    // Calculate center of terrain in world space
-    const terrainCenterX = terrainPosition[0] + WORLD_SIZE / 2;
-    const terrainCenterZ = terrainPosition[2] + WORLD_SIZE / 2;
-
-    // Add decorative elements on the terrain
-    for (let i = 0; i < 20; i++) {
-        // Calculate world coordinates directly
-        const worldX = terrainPosition[0] + Math.random() * WORLD_SIZE;
-        const worldZ = terrainPosition[2] + Math.random() * WORLD_SIZE;
-
-        // Get the actual height at this point
-        const worldY = getTerrainHeight(worldX, worldZ);
-
-        if (Math.random() < 0.5) {
-            const colorScheme = treeColors[Math.floor(Math.random() * treeColors.length)];
-            createMagicalTree(worldX, worldY, worldZ, colorScheme);
-        } else {
-            createCrystalCluster(worldX, worldY, worldZ);
-        }
+    // Create crystal formations
+    const crystalFormations = 20;
+    for (let i = 0; i < crystalFormations; i++) {
+        const angle = (i / crystalFormations) * Math.PI * 2;
+        const radius = 100 + Math.random() * 60;
+        const x = Math.cos(angle) * radius;
+        const z = Math.sin(angle) * radius;
+        const y = 0;
+        createCrystalFormation(x, y, z, 2 + Math.random() * 2);
     }
 
-    // Adjust rainbow positions
-    for (let i = 0; i < 3; i++) {
-        const worldX = terrainPosition[0] + Math.random() * WORLD_SIZE;
-        const worldZ = terrainPosition[2] + Math.random() * WORLD_SIZE;
-        const baseHeight = getTerrainHeight(worldX, worldZ);
-        const y = baseHeight + 30; // Position rainbows 30 units above terrain
-        createRainbow(worldX, y, worldZ, 5 + Math.random() * 5);
-    }
-
-    // Start at a lower height
-    cameraState.position[1] = 60;
-    cameraState.targetHeight = 60;
-
-    // Set up the callback for planning the next path
-    GameAPI.camera.setNearingTargetEndCallback(() => {
-        console.log('Planning next path...'); // Add debug logging
-        startNewFlightPath();
-    });
-
-    startNewFlightPath();
+    // Don't set camera position here - let fps-camera module handle it
+    isPathActive = false;
 };
 
 exports.update = function (event) {
     const time = event.time;
-    const deltaTime = event.deltaTime;
 
-    // Create a subtle shifting background color
-    const r = 0.529 + Math.sin(time * 0.5) * 0.1;
-    const g = 0.808 + Math.sin(time * 0.3) * 0.1;
-    const b = 0.922 + Math.sin(time * 0.7) * 0.1;
+    // Update shader uniforms
+    GameAPI.scene.setUniform('uTime', time);
+
+    // Update sky-specific uniforms if needed
+    GameAPI.scene.setUniform('uTime_sky-sphere', time);  // Per-object uniform
+
+    // Dynamic lighting with warmer colors and movement
+    const lightIntensity = 1.2 + Math.sin(time * 0.5) * 0.3;
+    const lightX = Math.cos(time * 0.2) * 100;
+    const lightY = 80 + Math.sin(time * 0.3) * 20;
+    const lightZ = Math.sin(time * 0.2) * 100;
+
+    GameAPI.scene.setUniform('uLightPosition', [lightX, lightY, lightZ]);
+    GameAPI.scene.setUniform('uLightColor', [
+        lightIntensity * 1.6,
+        lightIntensity * 1.4,
+        lightIntensity * 1.2
+    ]);
+
+    // Animate crystal and core emissions with more intensity
+    const crystals = Object.keys(GameAPI.scene).filter(id =>
+        id.startsWith('crystal-') || id.startsWith('energy-core-')
+    );
+
+    crystals.forEach((id, index) => {
+        const isCore = id.startsWith('energy-core-');
+        const baseEmission = isCore ? 2.0 : 0.6;
+        const emission = baseEmission + Math.sin(time * (isCore ? 4 : 2) + index * 0.1) * 0.5;
+        GameAPI.scene.setUniform(`uEmission_${id}`, emission);
+    });
+
+    // Animate water surface with more reflectivity
+    GameAPI.scene.setUniform('uMetalness_water-surface',
+        0.9 + Math.sin(time * 0.5) * 0.1
+    );
+
+    // Dynamic sky color - brighter and more varied
+    const r = 0.4 + Math.sin(time * 0.1) * 0.1;
+    const g = 0.5 + Math.sin(time * 0.15) * 0.1;
+    const b = 0.6 + Math.sin(time * 0.2) * 0.1;
     GameAPI.scene.setClearColor(r, g, b);
 
-
-    // Animate crystals
-    const crystalBlocks = Object.keys(GameAPI.scene).filter(id => id.startsWith('crystal-'));
-    crystalBlocks.forEach(id => {
-        const [_, x, y, z, index] = id.split('-').map(Number);
-        const rotationSpeed = 0.5 + (index % 3) * 0.2;
-        GameAPI.scene.setRotation(id,
-            time * rotationSpeed,
-            time * rotationSpeed * 0.7,
-            time * rotationSpeed * 0.3
-        );
-    });
-
-    // Animate rainbow elements
-    const rainbowParts = Object.keys(GameAPI.scene).filter(id => id.startsWith('rainbow-'));
-    rainbowParts.forEach(id => {
-        const [_, x, y, z, index] = id.split('-').map(Number);
-        const t = (time + index * 0.1) % 1;
-        GameAPI.scene.setUniform('uEmission', Math.sin(time * 2 + index) * 0.3 + 0.7);
+    // Update material properties for more dynamic effects
+    crystals.forEach((id, index) => {
+        if (id.includes('crystal-')) {
+            const isGold = index % 2 === 0;
+            if (isGold) {
+                // Animate gold metalness
+                GameAPI.scene.setUniform(`uMetalness_${id}`,
+                    0.9 + Math.sin(time * 2 + index) * 0.1
+                );
+            } else {
+                // Animate glass alpha
+                GameAPI.scene.setUniform(`uAlpha_${id}`,
+                    0.4 + Math.sin(time * 3 + index) * 0.2
+                );
+            }
+        }
     });
 };
+
+// Optional: Add cleanup if needed
+function cleanup() {
+    isPathActive = false;
+}

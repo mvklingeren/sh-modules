@@ -1,12 +1,13 @@
 // Camera control settings
 const MOVE_SPEED = 10.0;
-const LOOK_SPEED = 0.002;
+const LOOK_SPEED = 0.003;
 const INITIAL_POSITION = [0, 2, 5];
 
 // State
 let keys = {};
 let pitch = 0;
-let yaw = -Math.PI / 2; // Start looking along negative z-axis
+let yaw = -Math.PI / 2;
+let isMouseDown = false;
 
 // Cached vectors for camera orientation
 let forward = [0, 0, -1];
@@ -16,23 +17,33 @@ let up = [0, 1, 0];
 function updateCameraVectors() {
     // Calculate forward vector
     forward = [
-        Math.sin(yaw) * Math.cos(pitch),
+        Math.cos(pitch) * Math.sin(yaw),
         -Math.sin(pitch),
-        Math.cos(yaw) * Math.cos(pitch)
+        Math.cos(pitch) * Math.cos(yaw)
     ];
 
-    // Calculate right vector - cross product of world up and forward
+    // Calculate right vector
     right = GameAPI.vector.normalize(
         GameAPI.vector.cross([0, 1, 0], forward)
     );
 
-    // Calculate camera up vector - cross product of forward and right
+    // Calculate up vector
     up = GameAPI.vector.normalize(
         GameAPI.vector.cross(forward, right)
     );
 
-    // Update camera transform with all vectors
-    GameAPI.camera.setTransform({
+    console.log("FPS Camera: Updating vectors", {
+        pitch,
+        yaw,
+        forward,
+        right,
+        up,
+        position: GameAPI.camera.getPosition()
+    });
+
+    // Update camera state
+    GameAPI.camera.setState({
+        position: GameAPI.camera.getPosition(),
         rotation: [pitch, yaw, 0],
         forward: forward,
         right: right,
@@ -42,46 +53,63 @@ function updateCameraVectors() {
 
 exports.init = function (api) {
     GameAPI.debug("FPS Camera initializing...");
-
-    // Set initial camera position and update vectors
-    GameAPI.camera.setPosition(INITIAL_POSITION[0], INITIAL_POSITION[1], INITIAL_POSITION[2]);
+    GameAPI.camera.setPosition(...INITIAL_POSITION);
     updateCameraVectors();
 
+    let isPointerLocked = false;
+
+    // Handle mouse events
     GameAPI.addEventListener('input', (data) => {
-        if (!data.event) {
-            GameAPI.debug("Invalid input data received:", data);
-            return;
-        }
+        if (!data.event) return;
+        const event = data.event;
 
-        const inputEvent = data.event;
+        switch (event.type) {
+            case 'pointerLockChange':
+                isPointerLocked = event.locked;
+                console.log("FPS Camera: Pointer lock changed:", isPointerLocked);
+                break;
 
-        if (inputEvent.type === 'mousemove') {
-            if (typeof inputEvent.movementX === 'number' &&
-                typeof inputEvent.movementY === 'number') {
+            case 'mousemove':
+                if (isPointerLocked && event.movementX != null && event.movementY != null) {
+                    console.log("FPS Camera: Mouse move received", {
+                        movementX: event.movementX,
+                        movementY: event.movementY,
+                        oldYaw: yaw,
+                        oldPitch: pitch
+                    });
 
-                // Update yaw (left/right rotation)
-                yaw -= inputEvent.movementX * LOOK_SPEED;
+                    // Flip movement X for more intuitive controls
+                    yaw += event.movementX * -LOOK_SPEED;
 
-                // Update pitch (up/down rotation)
-                pitch += inputEvent.movementY * LOOK_SPEED;
-                pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, pitch));
+                    // Update pitch with clamping
+                    pitch = Math.max(-Math.PI / 2 + 0.1,
+                        Math.min(Math.PI / 2 - 0.1,
+                            pitch + event.movementY * -LOOK_SPEED));
 
-                // Update all camera vectors based on new rotation
-                updateCameraVectors();
-            }
-        } else if (inputEvent.type === 'keydown') {
-            keys[inputEvent.code] = true;
-        } else if (inputEvent.type === 'keyup') {
-            keys[inputEvent.code] = false;
+                    console.log("FPS Camera: New angles calculated", { yaw, pitch });
+                    updateCameraVectors();
+                }
+                break;
+
+            case 'keydown':
+                keys[event.code] = true;
+                break;
+
+            case 'keyup':
+                keys[event.code] = false;
+                break;
         }
     });
-
-    GameAPI.debug("FPS Camera initialization complete");
 };
 
 exports.update = function (event) {
     const deltaTime = event.deltaTime;
     const pos = GameAPI.camera.getPosition();
+
+    // Debug active keys
+    if (Object.keys(keys).some(k => keys[k])) {
+        console.log("Active keys:", Object.keys(keys).filter(k => keys[k]));
+    }
 
     if (!Array.isArray(pos) || pos.some(isNaN)) {
         GameAPI.debug("Invalid camera position detected");
