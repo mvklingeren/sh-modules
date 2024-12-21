@@ -188,91 +188,110 @@ function createCrystalCluster(x, y, z) {
     }
 }
 
+const WORLD_SIZE = 128; // Increased for better terrain visualization
+const WATER_LEVEL = 1;
+
 exports.init = function (api) {
     GameAPI.debug('Initializing magical voxel world...');
 
-    const WORLD_SIZE = 8;
-    const WATER_LEVEL = 1;
+    const terrainPosition = [-WORLD_SIZE / 2, -2, -WORLD_SIZE / 2];
 
-    // Set initial camera position for overview
-    GameAPI.camera.setPosition(WORLD_SIZE / 2, WORLD_SIZE * 0.8, WORLD_SIZE * 1.2);
-    GameAPI.camera.lookAt(WORLD_SIZE / 2, 0, WORLD_SIZE / 2);
+    // First create the terrain
+    GameAPI.scene.createObject('terrain', 'main-terrain', {
+        width: WORLD_SIZE,
+        depth: WORLD_SIZE,
+        resolution: 100,
+        position: terrainPosition,
+        options: {
+            heightScale: 8.0,
+            smoothness: 2.0,
+            seed: Math.random() * 10000
+        },
+        material: {
+            ...materials.grass,
+            roughness: 0.8,
+            metalness: 0.1,
+            color: [0.3, 0.7, 0.3]
+        }
+    });
 
-    // Generate terrain heightmap
-    const heightmap = [];
-    for (let x = 0; x < WORLD_SIZE; x++) {
-        heightmap[x] = [];
-        for (let z = 0; z < WORLD_SIZE; z++) {
-            let height = Math.floor(
-                (noise2DOctaves(x, z, 4) + 1) * 4 + 
-                Math.abs(noise2D(x * 2, z * 2)) * 2
-            );
-            heightmap[x][z] = height;
+    // Calculate center of terrain in world space
+    const terrainCenterX = terrainPosition[0] + WORLD_SIZE / 2;
+    const terrainCenterZ = terrainPosition[2] + WORLD_SIZE / 2;
+
+    // Set initial camera position and rotation to match the working values
+    // GameAPI.camera.setPosition(
+    //     terrainCenterX,
+    //     340,
+    //     terrainCenterZ
+    // );
+
+    GameAPI.camera.setRotation(
+        -0.028, // pitch
+        -0.6848, // yaw
+        0 // roll
+    );
+
+    // Add decorative elements on the terrain - adjusted positions to account for terrain offset
+    for (let i = 0; i < 20; i++) {
+        // Calculate position relative to terrain
+        const localX = Math.random() * WORLD_SIZE;
+        const localZ = Math.random() * WORLD_SIZE;
+
+        // Sample height from noise function using local coordinates
+        const heightAtPoint = noise2DOctaves(localX, localZ, 4) * 8;
+
+        // Convert to world coordinates by adding terrain offset
+        const worldX = localX + terrainPosition[0];
+        const worldZ = localZ + terrainPosition[2];
+        const worldY = heightAtPoint - terrainPosition[1]; // Adjust for terrain Y offset
+
+        if (Math.random() < 0.5) {
+            const colorScheme = treeColors[Math.floor(Math.random() * treeColors.length)];
+            createMagicalTree(worldX, worldY, worldZ, colorScheme);
+        } else {
+            createCrystalCluster(worldX, worldY, worldZ);
         }
     }
 
-    // Place terrain and features
-    for (let x = 0; x < WORLD_SIZE; x++) {
-        for (let z = 0; z < WORLD_SIZE; z++) {
-            const height = heightmap[x][z];
+    // Adjust rainbow positions as well
+    for (let i = 0; i < 3; i++) {
+        const localX = Math.random() * WORLD_SIZE;
+        const localZ = Math.random() * WORLD_SIZE;
+        const worldX = localX + terrainPosition[0];
+        const worldZ = localZ + terrainPosition[2];
+        const y = 15; // Increased height to be well above terrain
+        createRainbow(worldX, y, worldZ, 5 + Math.random() * 5);
+    }
+    //GameAPI.camera.loo
 
-            // Place terrain blocks
-            for (let y = 0; y <= height; y++) {
-                let material;
-                if (y === height) {
-                    material = height <= WATER_LEVEL + 1 ? materials.dirt : materials.grass;
-                } else if (y > height - 3) {
-                    material = materials.dirt;
-                } else {
-                    material = materials.grass;
-                }
-
-                GameAPI.scene.createObject('box', `block-${x}-${y}-${z}`, {
-                    width: 1,
-                    height: 1,
-                    depth: 1,
-                    position: [x, y, z],
-                    material: material
-                });
-            }
-
-            // Place water
-            if (height < WATER_LEVEL) {
-                for (let y = height + 1; y <= WATER_LEVEL; y++) {
-                    GameAPI.scene.createObject('box', `water-${x}-${y}-${z}`, {
-                        width: 1,
-                        height: 1,
-                        depth: 1,
-                        position: [x, y, z],
-                        material: materials.water
-                    });
-                }
-            }
-
-            // Place magical trees
-            if (height > WATER_LEVEL && Math.random() < 0.05) {
-                const colorScheme = treeColors[Math.floor(Math.random() * treeColors.length)];
-                createMagicalTree(x, height + 1, z, colorScheme);
-            }
-
-            // Place crystal clusters
-            if (height > WATER_LEVEL && Math.random() < 0.02) {
-                createCrystalCluster(x, height + 1, z);
-            }
+    // Animate to a slightly closer view while maintaining the same angle
+    GameAPI.camera.setTarget(
+        [
+            terrainCenterX - 100,
+            65,  // Slightly lower
+            terrainCenterZ + 50  // Slightly closer
+        ],
+        [-0.028, -2.6848, 0],  // Keep the same rotation
+        {
+            movementType: 'cubic',
+            duration: 2000
         }
-    }
-
-    // Add some rainbows
-    for (let i = 0; i < 5; i++) {
-        const x = Math.random() * WORLD_SIZE;
-        const z = Math.random() * WORLD_SIZE;
-        const y = Math.max(...heightmap.map(row => Math.max(...row))) + 2;
-        createRainbow(x, y, z, 5 + Math.random() * 5);
-    }
+    );
 };
 
 exports.update = function (event) {
     const time = event.time;
+
+    // Create a subtle shifting background color
+    const r = 0.529 + Math.sin(time * 0.5) * 0.1;
+    const g = 0.808 + Math.sin(time * 0.3) * 0.1;
+    const b = 0.922 + Math.sin(time * 0.7) * 0.1;
+    GameAPI.scene.setClearColor(r, g, b);
+
+    // Animate water plane
+    const waterHeight = WATER_LEVEL + Math.sin(time) * 0.1;
+    GameAPI.scene.setPosition('water-plane', -WORLD_SIZE / 2, waterHeight, -WORLD_SIZE / 2);
 
     // Animate water
     const waterBlocks = Object.keys(GameAPI.scene).filter(id => id.startsWith('water-'));
