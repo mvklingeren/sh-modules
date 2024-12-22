@@ -219,10 +219,27 @@ function createSphereGrid(rows, cols, spacing, height) {
     const startX = -(cols * spacing) / 2;
     const startZ = -(rows * spacing) / 2;
 
+    // Create parent sphere first
+    const parentId = 'sphere-parent';
+    GameAPI.scene.createObject('sphere', parentId, {
+        radius: 3.5,
+        segments: 32,
+        position: [0, height, 0],
+        material: {
+            type: 'default',
+            color: [1.0, 0.8, 0.6],  // Give parent a distinct color
+            roughness: 0.3
+        }
+    });
+
+    // Create child spheres with relative positions
     for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
-            const x = startX + col * spacing;
-            const z = startZ + row * spacing;
+            // Skip the center position since that's where the parent is
+            if (row === Math.floor(rows / 2) && col === Math.floor(cols / 2)) continue;
+
+            const relativeX = startX + col * spacing;
+            const relativeZ = startZ + row * spacing;
 
             // Create unique ID for each sphere
             const sphereId = `sphere-${row}-${col}`;
@@ -230,19 +247,25 @@ function createSphereGrid(rows, cols, spacing, height) {
             GameAPI.scene.createObject('sphere', sphereId, {
                 radius: 3.5,
                 segments: 32,
-                position: [x, height, z],
+                // Position will be relative to parent
+                position: [relativeX, 0, relativeZ],
                 material: {
                     type: 'default',
                     color: [
                         0.5 + Math.sin(row / rows) * 0.5,  // Vary red based on row
                         0.5 + Math.cos(col / cols) * 0.5,  // Vary green based on column
-                        0.7                              // Constant blue component
+                        0.7                                 // Constant blue component
                     ],
                     roughness: 0.3
                 }
             });
+
+            // Set parent relationship
+            GameAPI.scene.setParent(sphereId, parentId);
         }
     }
+
+    debugLog("Sphere grid created with parent-child relationships");
 }
 
 // Modify initializeLight function
@@ -295,7 +318,7 @@ exports.init = function (api) {
 
     const worldSize = 50;
     createTerrain(0, 0, 0, worldSize, worldSize);
-    createSphereGrid(5, 5, 12, -10);
+    createSphereGrid(5, 5, 15, -10);  // Adjusted spacing to 15 for better visibility
     initializeLight();
 
     GameAPI.camera.setPosition(20, 20, 20);
@@ -304,26 +327,48 @@ exports.init = function (api) {
     debugLog('Init complete');
 };
 
+// Add after createSphereGrid function
+function animateParentSphere(time) {
+    // Calculate a new target position
+    const radius = 20;
+    const baseHeight = -10;
+    const heightVariation = 5;
+
+    const targetPos = [
+        Math.cos(time * 0.3) * radius,
+        baseHeight + Math.sin(time * 0.6) * heightVariation,
+        Math.sin(time * 0.3) * radius
+    ];
+
+    // Set new target for parent sphere with cubic easing
+    GameAPI.scene.setTarget(
+        'sphere-parent',
+        targetPos,
+        2000,
+        'cubic'  // Use cubic easing for smoother motion
+    );
+}
+
 // Modify update function
 exports.update = function (event) {
     const { time } = event;
 
-    // Calculate position
-    const radius = 15;
-    const baseHeight = 10;
-    const heightVariation = 2;
+    // Light movement
+    const lightRadius = 15;
+    const lightBaseHeight = 10;
+    const lightHeightVariation = 2;
 
-    const newPos = [
-        Math.cos(time * 0.5) * radius,
-        baseHeight + Math.sin(time) * heightVariation,
-        Math.sin(time * 0.5) * radius
+    const lightPos = [
+        Math.cos(time * 0.5) * lightRadius,
+        lightBaseHeight + Math.sin(time) * lightHeightVariation,
+        Math.sin(time * 0.5) * lightRadius
     ];
 
-    // Update sphere position (light will follow)
-    GameAPI.scene.setPosition('moving-light-sphere', ...newPos);
+    // Update light sphere position
+    GameAPI.scene.setPosition('moving-light-sphere', ...lightPos);
 
-    // Update light position through the light API
-    //GameAPI.light.setPosition('moving-light', ...newPos);
+    // Animate parent sphere (which will move all children)
+    animateParentSphere(time);
 };
 
 exports.cleanup = function () {
