@@ -287,6 +287,8 @@ GameAPI.addEventListener('error', (event) => {
 
 // Modify init function
 exports.init = function (api) {
+    GameAPI.debug("simpony initializing...");
+
     debugLog('Initializing Enhanced Terrain Demo...');
 
     GameAPI.scene.setClearColor(0.7, 0.7, 0.9, 1.0);

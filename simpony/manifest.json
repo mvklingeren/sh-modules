@@ -1,8 +1,7 @@
 {
-  "id": "mix",
-  "name": "Mix Demo",
+  "id": "simpony",
+  "name": "simpony mesh test",
   "version": "1.0.0",
-  "active": false,
   "entry": {
     "type": "javascript",
     "script": "main.js"
