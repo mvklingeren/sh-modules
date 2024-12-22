@@ -212,12 +212,14 @@ function createCube(x, y, z, size) {
     });
 }
 
-// Add after the existing functions, before init
+// Modify createSphereGrid function
 function createSphereGrid(rows, cols, spacing, height) {
     debugLog("Creating sphere grid:", { rows, cols, spacing, height });
 
     const startX = -(cols * spacing) / 2;
     const startZ = -(rows * spacing) / 2;
+    const levels = 4;  // Number of vertical levels
+    const levelSpacing = spacing;  // Same spacing for vertical levels
 
     // Create parent sphere first
     const parentId = 'sphere-parent';
@@ -232,36 +234,40 @@ function createSphereGrid(rows, cols, spacing, height) {
         }
     });
 
-    // Create child spheres with relative positions
-    for (let row = 0; row < rows; row++) {
-        for (let col = 0; col < cols; col++) {
-            // Skip the center position since that's where the parent is
-            if (row === Math.floor(rows / 2) && col === Math.floor(cols / 2)) continue;
+    // Create child spheres in a cubic grid
+    for (let level = 0; level < levels; level++) {
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+                // Skip the center position at the base level
+                if (level === 0 &&
+                    row === Math.floor(rows / 2) &&
+                    col === Math.floor(cols / 2)) continue;
 
-            const relativeX = startX + col * spacing;
-            const relativeZ = startZ + row * spacing;
+                const relativeX = startX + col * spacing;
+                const relativeZ = startZ + row * spacing;
+                const relativeY = level * levelSpacing;  // Even spacing between levels
 
-            // Create unique ID for each sphere
-            const sphereId = `sphere-${row}-${col}`;
+                // Create unique ID for each sphere
+                const sphereId = `sphere-${level}-${row}-${col}`;
 
-            GameAPI.scene.createObject('sphere', sphereId, {
-                radius: 3.5,
-                segments: 32,
-                // Position will be relative to parent
-                position: [relativeX, 0, relativeZ],
-                material: {
-                    type: 'default',
-                    color: [
-                        0.5 + Math.sin(row / rows) * 0.5,  // Vary red based on row
-                        0.5 + Math.cos(col / cols) * 0.5,  // Vary green based on column
-                        0.7                                 // Constant blue component
-                    ],
-                    roughness: 0.3
-                }
-            });
+                GameAPI.scene.createObject('sphere', sphereId, {
+                    radius: 3.5,
+                    segments: 32,
+                    position: [relativeX, relativeY, relativeZ],
+                    material: {
+                        type: 'default',
+                        color: [
+                            0.5 + Math.sin(level / levels) * 0.5,  // Vary red based on level
+                            0.5 + Math.sin(row / rows) * 0.5,      // Vary green based on row
+                            0.5 + Math.cos(col / cols) * 0.5       // Vary blue based on column
+                        ],
+                        roughness: 0.3
+                    }
+                });
 
-            // Set parent relationship
-            GameAPI.scene.setParent(sphereId, parentId);
+                // Set parent relationship
+                GameAPI.scene.setParent(sphereId, parentId);
+            }
         }
     }
 
@@ -318,34 +324,37 @@ exports.init = function (api) {
 
     const worldSize = 50;
     createTerrain(0, 0, 0, worldSize, worldSize);
-    createSphereGrid(5, 5, 15, -10);  // Adjusted spacing to 15 for better visibility
+    createSphereGrid(6, 6, 12, -10);  // Adjusted for better 3D grid visibility
     initializeLight();
 
-    GameAPI.camera.setPosition(20, 20, 20);
-    GameAPI.camera.lookAt(0, -15, 0);
+    // Adjust camera position for better view of 3D grid
+    GameAPI.camera.setPosition(40, 40, 40);
+    GameAPI.camera.lookAt(0, 10, 0);  // Look at center of grid
 
     debugLog('Init complete');
 };
 
 // Add after createSphereGrid function
 function animateParentSphere(time) {
-    // Calculate a new target position
-    const radius = 20;
+    // Calculate a new target position with spiral motion
+    const radius = 20 + Math.sin(time * 0.8) * 8;     // Faster breathing, larger variation
     const baseHeight = -10;
-    const heightVariation = 5;
+    const heightVariation = 20;                        // Increased height variation
+    const spiralHeight = baseHeight + Math.sin(time * 0.6) * heightVariation;
+    const spiralSpeed = 0.5;                          // Faster spiral
 
     const targetPos = [
-        Math.cos(time * 0.3) * radius,
-        baseHeight + Math.sin(time * 0.6) * heightVariation,
-        Math.sin(time * 0.3) * radius
+        Math.cos(time * spiralSpeed) * radius,
+        spiralHeight + Math.cos(time * 1.2) * 8,      // Faster bobbing, larger amplitude
+        Math.sin(time * spiralSpeed) * radius
     ];
 
-    // Set new target for parent sphere with cubic easing
+    // Set new target for parent sphere with cubic easing for smooth motion
     GameAPI.scene.setTarget(
         'sphere-parent',
-        targetPos,
-        2000,
-        'cubic'  // Use cubic easing for smoother motion
+        targetPos, 
+        800,    // Even shorter duration for snappier movement
+        'cubic'
     );
 }
 
