@@ -1,8 +1,7 @@
 {
-  "id": "simpony",
-  "name": "simpony mesh test",
+  "id": "party22",
+  "name": "demo",
   "version": "1.0.0",
-  "active": false,
   "entry": {
     "type": "javascript",
     "script": "main.js"

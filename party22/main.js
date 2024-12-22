@@ -314,315 +314,70 @@ GameAPI.addEventListener('error', (event) => {
     debugLog("Error event received:", event);
 });
 
-// Add terrain shaders with grass effect
-const terrainShaders = {
-    vertex: `
-        precision highp float;
-        attribute vec3 position;
-        attribute vec3 normal;
-        attribute vec2 uv;
-        
-        uniform mat4 modelViewMatrix;
-        uniform mat4 projectionMatrix;
-        
-        varying vec3 vNormal;
-        varying vec3 vPosition;
-        varying vec2 vUv;
-        varying float vIsTop;
-        
-        void main() {
-            vNormal = normalize(mat3(modelViewMatrix) * normal);
-            vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
-            vUv = uv;
-            vIsTop = normal.y > 0.9 ? 1.0 : 0.0; // Check if face is top
-            
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-    `,
-    fragment: `
-        precision highp float;
-        
-        uniform vec3 uPointLightPos;
-        uniform vec3 uPointLightColor;
-        uniform float uPointLightIntensity;
-        uniform float uTime;
-        
-        varying vec3 vNormal;
-        varying vec3 vPosition;
-        varying vec2 vUv;
-        varying float vIsTop;
-        
-        // Noise function for grass variation
-        float rand(vec2 co) {
-            return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
-        }
-        
-        void main() {
-            // Base colors
-            vec3 dirtColor = vec3(0.45, 0.3, 0.2);
-            vec3 grassColor = vec3(0.2, 0.6, 0.2);
-            
-            // Add some noise to grass
-            float noise = rand(vUv + uTime * 0.1);
-            grassColor += vec3(noise * 0.1);
-            
-            // Mix colors based on whether it's top face
-            vec3 baseColor = mix(dirtColor, grassColor, vIsTop);
-            
-            // Lighting calculations
-            vec3 lightDir = normalize(uPointLightPos - vPosition);
-            vec3 normal = normalize(vNormal);
-            
-            float diff = max(dot(normal, lightDir), 0.0);
-            vec3 diffuse = uPointLightColor * diff * uPointLightIntensity;
-            
-            // Add ambient light
-            vec3 ambient = vec3(0.3);
-            
-            // Final color
-            vec3 finalColor = baseColor * (diffuse + ambient);
-            
-            gl_FragColor = vec4(finalColor, 1.0);
-        }
-    `
-};
-
-// Add rainbow shader
-const rainbowShaders = {
-    vertex: `
-        precision highp float;
-        attribute vec3 position;
-        
-        uniform mat4 modelViewMatrix;
-        uniform mat4 projectionMatrix;
-        uniform float uTime;
-        
-        varying vec3 vPosition;
-        
-        void main() {
-            vec3 pos = position;
-            // Add some wave motion
-            pos.y += sin(pos.x * 0.2 + uTime) * 2.0;
-            
-            vPosition = pos;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-        }
-    `,
-    fragment: `
-        precision highp float;
-        
-        uniform float uTime;
-        varying vec3 vPosition;
-        
-        void main() {
-            // Rainbow color calculation
-            vec3 color = vec3(
-                sin(vPosition.x * 0.2 + uTime) * 0.5 + 0.5,
-                sin(vPosition.x * 0.2 + uTime + 2.094) * 0.5 + 0.5,
-                sin(vPosition.x * 0.2 + uTime + 4.189) * 0.5 + 0.5
-            );
-            
-            // Add sparkle effect
-            float sparkle = sin(vPosition.x * 10.0 + uTime * 5.0) * 
-                           sin(vPosition.y * 10.0 + uTime * 3.0) * 0.5 + 0.5;
-            
-            color += vec3(sparkle * 0.3);
-            
-            gl_FragColor = vec4(color, 0.6);
-        }
-    `
-};
-
-// Add creature creation function
-function createCreature(x, y, z) {
-    const creatureId = `creature-${Math.random()}`;
-    
-    // Create body
-    GameAPI.scene.createObject('box', `${creatureId}-body`, {
-        width: 2,
-        height: 2,
-        depth: 3,
-        position: [x, y, z],
-        material: {
-            type: 'default',
-            color: [0.8, 0.2, 0.2]
-        }
-    });
-
-    // Create head
-    GameAPI.scene.createObject('sphere', `${creatureId}-head`, {
-        radius: 1.2,
-        position: [x, y + 2, z + 1.5],
-        material: {
-            type: 'default',
-            color: [0.9, 0.3, 0.3]
-        }
-    });
-
-    // Create legs
-    const legPositions = [
-        [x - 0.7, y - 1, z - 1],
-        [x + 0.7, y - 1, z - 1],
-        [x - 0.7, y - 1, z + 1],
-        [x + 0.7, y - 1, z + 1]
-    ];
-
-    legPositions.forEach((pos, i) => {
-        GameAPI.scene.createObject('box', `${creatureId}-leg-${i}`, {
-            width: 0.4,
-            height: 2,
-            depth: 0.4,
-            position: pos,
-            material: {
-                type: 'default',
-                color: [0.7, 0.2, 0.2]
-            }
-        });
-    });
-
-    return creatureId;
-}
-
-// Create terrain grid function
-function createTerrainGrid(size, scale) {
-    const heightMap = [];
-    // Generate height map using simplex noise (simplified here)
-    for (let x = 0; x < size; x++) {
-        heightMap[x] = [];
-        for (let z = 0; z < size; z++) {
-            heightMap[x][z] = Math.sin(x * 0.2) * Math.cos(z * 0.2) * 5;
-        }
-    }
-
-    // Create cubes based on height map
-    for (let x = 0; x < size; x++) {
-        for (let z = 0; z < size; z++) {
-            const height = heightMap[x][z];
-            const y = height;
-
-            GameAPI.scene.createObject('box', `terrain-${x}-${z}`, {
-                width: scale,
-                height: scale,
-                depth: scale,
-                position: [
-                    (x - size/2) * scale,
-                    y,
-                    (z - size/2) * scale
-                ],
-                material: {
-                    type: 'shader',
-                    vertexShader: terrainShaders.vertex,
-                    fragmentShader: terrainShaders.fragment
-                }
-            });
-        }
-    }
-
-    return heightMap;
-}
-
-// Create rainbow function
-function createRainbow(x, y, z, size) {
-    const points = [];
-    const segments = 20;
-    
-    for (let i = 0; i <= segments; i++) {
-        const theta = (i / segments) * Math.PI;
-        points.push([
-            Math.cos(theta) * size,
-            Math.sin(theta) * size,
-            0
-        ]);
-    }
-
-    GameAPI.scene.createObject('custom', 'rainbow', {
-        vertices: points,
-        position: [x, y, z],
-        material: {
-            type: 'shader',
-            vertexShader: rainbowShaders.vertex,
-            fragmentShader: rainbowShaders.fragment,
-            transparent: true,
-            depthWrite: false
-        }
-    });
-}
-
 // Modify init function
 exports.init = function (api) {
-    GameAPI.debug("Minecraft-like world initializing...");
+    GameAPI.debug("simpony initializing...");
 
-    GameAPI.scene.setClearColor(0.6, 0.8, 1.0, 1.0); // Nice sky blue
+    debugLog('Initializing Enhanced Terrain Demo...');
 
-    // Create terrain
-    const heightMap = createTerrainGrid(32, 2);
+    GameAPI.scene.setClearColor(0.7, 0.7, 0.9, 1.0);
 
-    // Create creatures
-    const creatures = [];
-    for (let i = 0; i < 5; i++) {
-        const x = Math.random() * 40 - 20;
-        const z = Math.random() * 40 - 20;
-        const y = 10; // Will be affected by gravity
-        creatures.push(createCreature(x, y, z));
-    }
-
-    // Create rainbows
-    createRainbow(0, 30, -20, 20);
-    createRainbow(20, 35, 10, 15);
-
-    // Setup light
+    const worldSize = 50;
+    createTerrain(0, 0, 0, worldSize, worldSize);
+    createSphereGrid(6, 6, 12, -10);  // Adjusted for better 3D grid visibility
     initializeLight();
 
-    // Position camera for good view
-    GameAPI.camera.setPosition(50, 50, 50);
-    GameAPI.camera.lookAt(0, 0, 0);
+    // Adjust camera position for better view of 3D grid
+    GameAPI.camera.setPosition(40, 40, 40);
+    GameAPI.camera.lookAt(0, 10, 0);  // Look at center of grid
+
+    debugLog('Init complete');
 };
 
-// Add creature animation and physics
-let creatures = [];
-let heightMap = [];
+// Add after createSphereGrid function
+function animateParentSphere(time) {
+    // Calculate a new target position with spiral motion
+    const radius = 20 + Math.sin(time * 0.8) * 8;     // Faster breathing, larger variation
+    const baseHeight = -10;
+    const heightVariation = 20;                        // Increased height variation
+    const spiralHeight = baseHeight + Math.sin(time * 0.6) * heightVariation;
+    const spiralSpeed = 0.5;                          // Faster spiral
+
+    const targetPos = [
+        Math.cos(time * spiralSpeed) * radius,
+        spiralHeight + Math.cos(time * 1.2) * 8,      // Faster bobbing, larger amplitude
+        Math.sin(time * spiralSpeed) * radius
+    ];
+
+    // Set new target for parent sphere with cubic easing for smooth motion
+    GameAPI.scene.setTarget(
+        'sphere-parent',
+        targetPos,
+        800,    // Even shorter duration for snappier movement
+        'cubic'
+    );
+}
 
 // Modify update function
 exports.update = function (event) {
-    const { time, deltaTime } = event;
+    const { time } = event;
 
-    // Update creatures
-    creatures.forEach(creatureId => {
-        // Simple walking animation
-        const walkSpeed = 5;
-        const bounceHeight = 0.5;
-        const x = Math.cos(time * walkSpeed) * 10;
-        const z = Math.sin(time * walkSpeed) * 10;
-        const bounce = Math.sin(time * walkSpeed * 2) * bounceHeight;
+    // Light movement
+    const lightRadius = 15;
+    const lightBaseHeight = 10;
+    const lightHeightVariation = 2;
 
-        // Apply gravity and terrain collision
-        let y = 0; // Calculate based on terrain height
-        
-        GameAPI.scene.setPosition(`${creatureId}-body`, x, y + bounce, z);
-        GameAPI.scene.setPosition(`${creatureId}-head`, x, y + 2 + bounce, z + 1.5);
-        
-        // Update legs with walking animation
-        for (let i = 0; i < 4; i++) {
-            const legPhase = time * walkSpeed + (i * Math.PI / 2);
-            const legBounce = Math.sin(legPhase) * 0.5;
-            GameAPI.scene.setPosition(
-                `${creatureId}-leg-${i}`,
-                x + (i % 2 === 0 ? -0.7 : 0.7),
-                y - 1 + legBounce,
-                z + (i < 2 ? -1 : 1)
-            );
-        }
-    });
-
-    // Update light for day/night cycle
-    const dayLength = 60; // seconds
-    const angle = (time % dayLength) / dayLength * Math.PI * 2;
     const lightPos = [
-        Math.cos(angle) * 100,
-        Math.sin(angle) * 100,
-        0
+        Math.cos(time * 0.5) * lightRadius,
+        lightBaseHeight + Math.sin(time) * lightHeightVariation,
+        Math.sin(time * 0.5) * lightRadius
     ];
+
+    // Update light sphere position
     GameAPI.scene.setPosition('moving-light-sphere', ...lightPos);
+
+    // Animate parent sphere (which will move all children)
+    animateParentSphere(time);
 };
 
 exports.cleanup = function () {
