@@ -1,8 +1,8 @@
 {
-  "id": "party22",
-  "name": "demo",
+  "id": "mix-rev",
+  "name": "Mix Demo",
   "version": "1.0.0",
-  "active": false,
+  "active": true,
   "entry": {
     "type": "javascript",
     "script": "main.js"

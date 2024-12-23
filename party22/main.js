@@ -20,12 +20,12 @@ const materials = {
 
 // Keep light configuration
 const lightConfig = {
-    NUM_LIGHTS: 4,
+    NUM_LIGHTS: 2,
     lights: [
-        { color: [1.0, 0.95, 0.8], intensity: 2.0 },   // Main light (warm white)
-        { color: [0.3, 0.5, 1.0], intensity: 1.5 },    // Blue accent
-        { color: [1.0, 0.3, 0.2], intensity: 1.5 },    // Red accent
-        { color: [0.2, 1.0, 0.3], intensity: 1.5 }     // Green accent
+        { color: [1.0, 0.95, 0.8], intensity: 0.5 },   // Main light (warm white) - halved from 1.0
+        { color: [0.3, 0.5, 1.0], intensity: 0.5 },    // Blue accent - halved from 1.0
+        { color: [1.0, 0.3, 0.2], intensity: 0.5 },    // Red accent - halved from 1.0
+        { color: [0.2, 1.0, 0.3], intensity: 0.5 }     // Green accent - halved from 1.0
     ]
 };
 
@@ -104,7 +104,7 @@ const planeShaders = {
 
             // Calculate diffuse lighting with increased intensity
             float diff = max(dot(normal, lightDir), 0.0);
-            vec3 diffuse = uPointLightColor * diff * (uPointLightIntensity * 1.5) * attenuation;
+            vec3 diffuse = uPointLightColor * diff * (uPointLightIntensity) * attenuation;
 
             // Add stronger ambient light
             vec3 ambient = vec3(0.3);  // Increased from 0.2 to 0.3
@@ -314,70 +314,372 @@ GameAPI.addEventListener('error', (event) => {
     debugLog("Error event received:", event);
 });
 
-// Modify init function
-exports.init = function (api) {
-    GameAPI.debug("simpony initializing...");
-
-    debugLog('Initializing Enhanced Terrain Demo...');
-
-    GameAPI.scene.setClearColor(0.7, 0.7, 0.9, 1.0);
-
-    const worldSize = 50;
-    createTerrain(0, 0, 0, worldSize, worldSize);
-    createSphereGrid(6, 6, 12, -10);  // Adjusted for better 3D grid visibility
-    initializeLight();
-
-    // Adjust camera position for better view of 3D grid
-    GameAPI.camera.setPosition(40, 40, 40);
-    GameAPI.camera.lookAt(0, 10, 0);  // Look at center of grid
-
-    debugLog('Init complete');
+// Add terrain shaders with grass effect
+const terrainShaders = {
+    vertex: `
+        precision highp float;
+        attribute vec3 position;
+        attribute vec3 normal;
+        attribute vec2 uv;
+        
+        uniform mat4 modelViewMatrix;
+        uniform mat4 projectionMatrix;
+        
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        varying vec2 vUv;
+        varying float vIsTop;
+        
+        void main() {
+            vNormal = normalize(mat3(modelViewMatrix) * normal);
+            vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
+            vUv = uv;
+            vIsTop = normal.y > 0.9 ? 1.0 : 0.0; // Check if face is top
+            
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragment: `
+        precision highp float;
+        
+        uniform vec3 uPointLightPos;
+        uniform vec3 uPointLightColor;
+        uniform float uPointLightIntensity;
+        uniform float uTime;
+        
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        varying vec2 vUv;
+        varying float vIsTop;
+        
+        // Noise function for grass variation
+        float rand(vec2 co) {
+            return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+        }
+        
+        void main() {
+            // Base colors
+            vec3 dirtColor = vec3(0.45, 0.3, 0.2);
+            vec3 grassColor = vec3(0.2, 0.6, 0.2);
+            
+            // Add some noise to grass
+            float noise = rand(vUv + uTime * 0.1);
+            grassColor += vec3(noise * 0.1);
+            
+            // Mix colors based on whether it's top face
+            vec3 baseColor = mix(dirtColor, grassColor, vIsTop);
+            
+            // Lighting calculations
+            vec3 lightDir = normalize(uPointLightPos - vPosition);
+            vec3 normal = normalize(vNormal);
+            
+            float diff = max(dot(normal, lightDir), 0.0);
+            vec3 diffuse = uPointLightColor * diff * (uPointLightIntensity * 0.5); // Halved intensity multiplier
+            
+            // Reduce ambient light
+            vec3 ambient = vec3(0.15); // Halved from 0.3
+            
+            // Final color
+            vec3 finalColor = baseColor * (diffuse + ambient);
+            
+            gl_FragColor = vec4(finalColor, 1.0);
+        }
+    `
 };
 
-// Add after createSphereGrid function
-function animateParentSphere(time) {
-    // Calculate a new target position with spiral motion
-    const radius = 20 + Math.sin(time * 0.8) * 8;     // Faster breathing, larger variation
-    const baseHeight = -10;
-    const heightVariation = 20;                        // Increased height variation
-    const spiralHeight = baseHeight + Math.sin(time * 0.6) * heightVariation;
-    const spiralSpeed = 0.5;                          // Faster spiral
+// Modify rainbow shader
+const rainbowShaders = {
+    vertex: `
+        precision highp float;
+        attribute vec3 position;
+        
+        uniform mat4 modelViewMatrix;
+        uniform mat4 projectionMatrix;
+        
+        varying vec3 vPosition;
+        
+        void main() {
+            vPosition = position; // Pass the local position to fragment shader
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragment: `
+        precision highp float;
+        
+        varying vec3 vPosition;
 
-    const targetPos = [
-        Math.cos(time * spiralSpeed) * radius,
-        spiralHeight + Math.cos(time * 1.2) * 8,      // Faster bobbing, larger amplitude
-        Math.sin(time * spiralSpeed) * radius
+        void main() {
+            // Simple static rainbow based on position
+            vec3 color = vec3(1.0, 0.0, 0.0); // Start with red
+
+            // Calculate normalized position from center
+            float dist = length(vPosition);
+            float angle = atan(vPosition.y, vPosition.x);
+
+            // Create rainbow bands
+            if (dist > 0.2) { // Skip center point
+                if (angle < -2.0) {
+                    color = vec3(1.0, 0.0, 0.0); // Red
+                } else if (angle < -1.0) {
+                    color = vec3(1.0, 0.5, 0.0); // Orange
+                } else if (angle < 0.0) {
+                    color = vec3(1.0, 1.0, 0.0); // Yellow
+                } else if (angle < 1.0) {
+                    color = vec3(0.0, 1.0, 0.0); // Green
+                } else if (angle < 2.0) {
+                    color = vec3(0.0, 0.0, 1.0); // Blue
+                } else {
+                    color = vec3(0.5, 0.0, 1.0); // Purple
+                }
+            }
+
+            gl_FragColor = vec4(color, 1.0);
+        }
+    `
+};
+
+// Add creature creation function
+function createCreature(x, y, z) {
+    const creatureId = `creature-${Math.random()}`;
+
+    // Create body
+    GameAPI.scene.createObject('box', `${creatureId}-body`, {
+        width: 2,
+        height: 2,
+        depth: 3,
+        position: [x, y, z],
+        material: {
+            type: 'default',
+            color: [0.8, 0.2, 0.2]
+        }
+    });
+
+    // Create head
+    GameAPI.scene.createObject('sphere', `${creatureId}-head`, {
+        radius: 1.2,
+        position: [x, y + 2, z + 1.5],
+        material: {
+            type: 'default',
+            color: [0.9, 0.3, 0.3]
+        }
+    });
+
+    // Create legs
+    const legPositions = [
+        [x - 0.7, y - 1, z - 1],
+        [x + 0.7, y - 1, z - 1],
+        [x - 0.7, y - 1, z + 1],
+        [x + 0.7, y - 1, z + 1]
     ];
 
-    // Set new target for parent sphere with cubic easing for smooth motion
-    GameAPI.scene.setTarget(
-        'sphere-parent',
-        targetPos,
-        800,    // Even shorter duration for snappier movement
-        'cubic'
-    );
+    legPositions.forEach((pos, i) => {
+        GameAPI.scene.createObject('box', `${creatureId}-leg-${i}`, {
+            width: 0.4,
+            height: 2,
+            depth: 0.4,
+            position: pos,
+            material: {
+                type: 'default',
+                color: [0.7, 0.2, 0.2]
+            }
+        });
+    });
+
+    return creatureId;
 }
+
+// Create terrain grid function
+function createTerrainGrid(size, scale) {
+    const heightMap = [];
+    // Generate height map with more dramatic elevation changes
+    for (let x = 0; x < size; x++) {
+        heightMap[x] = [];
+        for (let z = 0; z < size; z++) {
+            // Generate continuous height first
+            const rawHeight =
+                Math.sin(x * 0.2) * Math.cos(z * 0.2) * 12 +
+                Math.sin(x * 0.5 + z * 0.3) * 6 +
+                Math.sin(z * 0.4) * Math.cos(x * 0.4) * 8;
+
+            // Quantize the height to create stepped terrain
+            // Using scale * 3 (cube height) as the step size
+            const stepSize = scale * 3;
+            const quantizedHeight = Math.round(rawHeight / stepSize) * stepSize;
+
+            heightMap[x][z] = quantizedHeight;
+
+            // Smooth transitions - limit height difference with neighbors
+            if (x > 0 && z > 0) {
+                const leftHeight = heightMap[x - 1][z];
+                const backHeight = heightMap[x][z - 1];
+                const maxDiff = stepSize; // Maximum allowed height difference
+
+                // Adjust height to be within one step of neighbors
+                const targetHeight = Math.min(
+                    quantizedHeight,
+                    Math.max(
+                        leftHeight - maxDiff,
+                        backHeight - maxDiff,
+                        Math.min(
+                            leftHeight + maxDiff,
+                            backHeight + maxDiff
+                        )
+                    )
+                );
+
+                heightMap[x][z] = targetHeight;
+            }
+        }
+    }
+
+    // Create cubes based on height map with larger scale and smaller gaps
+    const spacing = 2; // Reduced spacing between cubes for denser terrain
+    for (let x = 0; x < size; x++) {
+        for (let z = 0; z < size; z++) {
+            const height = heightMap[x][z];
+            const y = height;
+
+            // Only create cubes above certain height for more interesting landscape
+            if (height > -4) {
+                GameAPI.scene.createObject('box', `terrain-${x}-${z}`, {
+                    width: scale * 1.5,    // Slightly wider cubes
+                    height: scale * 3,     // Taller cubes
+                    depth: scale * 1.5,    // Slightly deeper cubes
+                    position: [
+                        (x - size / 2) * spacing * 1.5,  // Spread out more on X
+                        y,                               // Use exact quantized height
+                        (z - size / 2) * spacing * 1.5   // Spread out more on Z
+                    ],
+                    material: {
+                        type: 'shader',
+                        vertexShader: terrainShaders.vertex,
+                        fragmentShader: terrainShaders.fragment
+                    }
+                });
+            }
+        }
+    }
+
+    return heightMap;
+}
+
+// Create rainbow function
+function createRainbow(x, y, z, size, id) {
+    const points = [];
+    const segments = 20;
+
+    debugLog(`Creating rainbow ${id}:`, { x, y, z, size });
+
+    // Add center point first for triangle fan
+    points.push([0, 0, 0]);
+
+    for (let i = 0; i <= segments; i++) {
+        const theta = (i / segments) * Math.PI;
+        points.push([
+            Math.cos(theta) * size,
+            Math.sin(theta) * size,
+            0
+        ]);
+    }
+
+    GameAPI.scene.createObject('custom', `rainbow-${id}`, {
+        vertices: points,
+        position: [x, y, z],
+        rotation: [0, Math.PI / 2, 0], // Rotate 90 degrees around Y to face camera
+        material: {
+            type: 'shader',
+            vertexShader: rainbowShaders.vertex,
+            fragmentShader: rainbowShaders.fragment,
+            transparent: false,
+            renderMode: 'triangles'
+        }
+    });
+}
+
+// Modify init function
+exports.init = function (api) {
+    GameAPI.debug("Minecraft-like world initializing...");
+
+    GameAPI.scene.setClearColor(0.6, 0.8, 1.0, 1.0); // Nice sky blue
+
+    // Create terrain with larger size and adjusted scale
+    const heightMap = createTerrainGrid(32, 2); // Size 16, scale 2
+
+    // Find max terrain height for rainbow positioning
+    let maxHeight = -Infinity;
+    for (let x = 0; x < 16; x++) {
+        for (let z = 0; z < 16; z++) {
+            if (heightMap[x] && heightMap[x][z] !== undefined) {
+                maxHeight = Math.max(maxHeight, heightMap[x][z]);
+            }
+        }
+    }
+
+    // Position rainbows just above the terrain
+    const rainbowHeight = maxHeight + 5; // 5 units above highest terrain point
+    const terrainRadius = (16 * 2 * 1.5) / 2; // Calculate terrain radius based on size and spacing
+
+    // Create rainbows at positions relative to terrain
+    createRainbow(0, rainbowHeight, -terrainRadius * 0.5, 15, 'front');  // Front rainbow
+    createRainbow(terrainRadius * 0.5, rainbowHeight + 5, 0, 12, 'right');  // Right rainbow
+    createRainbow(-terrainRadius * 0.5, rainbowHeight - 2, 0, 10, 'left');  // Left rainbow
+
+    debugLog('Rainbow positions:', {
+        rainbowHeight,
+        terrainRadius,
+        maxHeight,
+        positions: [
+            [0, rainbowHeight, -terrainRadius * 0.5],
+            [terrainRadius * 0.5, rainbowHeight + 5, 0],
+            [-terrainRadius * 0.5, rainbowHeight - 2, 0]
+        ]
+    });
+
+    // Setup light
+    initializeLight();
+
+    // Position camera above the center of the terrain
+    const centerX = 0;
+    const centerZ = 0;
+    // Find height at center point (or nearby if center is empty)
+    let centerHeight = -4; // default minimum height
+    const halfSize = Math.floor(16 / 2); // Changed from 48 to match terrain size
+
+    // Search for a valid height near the center
+    for (let dx = -2; dx <= 2; dx++) {
+        for (let dz = -2; dz <= 2; dz++) {
+            const x = halfSize + dx;
+            const z = halfSize + dz;
+            if (heightMap[x] && heightMap[x][z] !== undefined) {
+                centerHeight = Math.max(centerHeight, heightMap[x][z]);
+            }
+        }
+    }
+
+    // Position camera above the found height
+    const cameraHeight = centerHeight + 20; // 20 units above the terrain
+    GameAPI.camera.setPosition(centerX, cameraHeight, centerZ);
+    GameAPI.camera.lookAt(centerX, centerHeight, centerZ - 20); // Look slightly forward
+};
+
+// Remove the creatures array since we're not using it anymore
+let heightMap = [];
 
 // Modify update function
 exports.update = function (event) {
-    const { time } = event;
+    const { time, deltaTime } = event;
 
-    // Light movement
-    const lightRadius = 15;
-    const lightBaseHeight = 10;
-    const lightHeightVariation = 2;
-
-    const lightPos = [
-        Math.cos(time * 0.5) * lightRadius,
-        lightBaseHeight + Math.sin(time) * lightHeightVariation,
-        Math.sin(time * 0.5) * lightRadius
+    // Update light for day/night cycle
+    const dayLength = 60; // seconds
+    const angle = (time % dayLength) / dayLength * Math.PI * 2;
+    const targetLightPos = [
+        Math.cos(angle) * 100,
+        Math.sin(angle) * 100,
+        0
     ];
 
-    // Update light sphere position
-    GameAPI.scene.setPosition('moving-light-sphere', ...lightPos);
-
-    // Animate parent sphere (which will move all children)
-    animateParentSphere(time);
+    // Use setTarget with a short duration for smooth movement
+    GameAPI.scene.setTarget('moving-light-sphere', targetLightPos, 1000, "LINEAR");
 };
 
 exports.cleanup = function () {

@@ -293,7 +293,7 @@ function initializeLight() {
     GameAPI.light.createPointLight('moving-light', {
         position: [0, 0, 0],
         color: [1.0, 0.95, 0.8],
-        intensity: 5,
+        intensity: 0.2,
         radius: 50
     });
 
@@ -532,7 +532,7 @@ function createRainbow(x, y, z, size) {
             Math.cos(theta) * size,
             Math.sin(theta) * size,
             0
-        ]);
+        ]); 
     }
 
     GameAPI.scene.createObject('custom', 'rainbow', {
@@ -542,7 +542,7 @@ function createRainbow(x, y, z, size) {
             type: 'shader',
             vertexShader: rainbowShaders.vertex,
             fragmentShader: rainbowShaders.fragment,
-            transparent: true,
+            transparent: false,
             depthWrite: false
         }
     });
@@ -558,13 +558,13 @@ exports.init = function (api) {
     const heightMap = createTerrainGrid(32, 2);
 
     // Create creatures
-    const creatures = [];
-    for (let i = 0; i < 5; i++) {
-        const x = Math.random() * 40 - 20;
-        const z = Math.random() * 40 - 20;
-        const y = 10; // Will be affected by gravity
-        creatures.push(createCreature(x, y, z));
-    }
+    // const creatures = [];
+    // for (let i = 0; i < 5; i++) {
+    //     const x = Math.random() * 40 - 20;
+    //     const z = Math.random() * 40 - 20;
+    //     const y = 10; // Will be affected by gravity
+    //     creatures.push(createCreature(x, y, z));
+    // }
 
     // Create rainbows
     createRainbow(0, 30, -20, 20);
@@ -587,42 +587,42 @@ exports.update = function (event) {
     const { time, deltaTime } = event;
 
     // Update creatures
-    creatures.forEach(creatureId => {
-        // Simple walking animation
-        const walkSpeed = 5;
-        const bounceHeight = 0.5;
-        const x = Math.cos(time * walkSpeed) * 10;
-        const z = Math.sin(time * walkSpeed) * 10;
-        const bounce = Math.sin(time * walkSpeed * 2) * bounceHeight;
+    // creatures.forEach(creatureId => {
+    //     // Simple walking animation
+    //     const walkSpeed = 5;
+    //     const bounceHeight = 0.5;
+    //     const x = Math.cos(time * walkSpeed) * 10;
+    //     const z = Math.sin(time * walkSpeed) * 10;
+    //     const bounce = Math.sin(time * walkSpeed * 2) * bounceHeight;
 
-        // Apply gravity and terrain collision
-        let y = 0; // Calculate based on terrain height
+    //     // Apply gravity and terrain collision
+    //     let y = 0; // Calculate based on terrain height
         
-        GameAPI.scene.setPosition(`${creatureId}-body`, x, y + bounce, z);
-        GameAPI.scene.setPosition(`${creatureId}-head`, x, y + 2 + bounce, z + 1.5);
+    //     GameAPI.scene.setPosition(`${creatureId}-body`, x, y + bounce, z);
+    //     GameAPI.scene.setPosition(`${creatureId}-head`, x, y + 2 + bounce, z + 1.5);
         
-        // Update legs with walking animation
-        for (let i = 0; i < 4; i++) {
-            const legPhase = time * walkSpeed + (i * Math.PI / 2);
-            const legBounce = Math.sin(legPhase) * 0.5;
-            GameAPI.scene.setPosition(
-                `${creatureId}-leg-${i}`,
-                x + (i % 2 === 0 ? -0.7 : 0.7),
-                y - 1 + legBounce,
-                z + (i < 2 ? -1 : 1)
-            );
-        }
-    });
+    //     // Update legs with walking animation
+    //     for (let i = 0; i < 4; i++) {
+    //         const legPhase = time * walkSpeed + (i * Math.PI / 2);
+    //         const legBounce = Math.sin(legPhase) * 0.5;
+    //         GameAPI.scene.setPosition(
+    //             `${creatureId}-leg-${i}`,
+    //             x + (i % 2 === 0 ? -0.7 : 0.7),
+    //             y - 1 + legBounce,
+    //             z + (i < 2 ? -1 : 1)
+    //         );
+    //     }
+    // });
 
     // Update light for day/night cycle
     const dayLength = 60; // seconds
     const angle = (time % dayLength) / dayLength * Math.PI * 2;
-    const lightPos = [
-        Math.cos(angle) * 100,
-        Math.sin(angle) * 100,
-        0
-    ];
-    GameAPI.scene.setPosition('moving-light-sphere', ...lightPos);
+    // const lightPos = [
+    //     Math.cos(angle) * 100,
+    //     Math.sin(angle) * 100,
+    //     0
+    // ];
+    // GameAPI.scene.setPosition('moving-light-sphere', ...lightPos);
 };
 
 exports.cleanup = function () {
