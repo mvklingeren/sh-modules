@@ -396,6 +396,9 @@ function createRandomSphere() {
     const position = getRandomPosition();
     const sphereId = `sphere-${sphereCount}`;
 
+    // Add random size between 0.5 and 2.5
+    const randomSize = 0.5 + Math.random() * 2.0;  // 0.5 to 2.5
+
     // Add new sphere to queue
     sphereQueue.push(sphereId);
 
@@ -416,9 +419,9 @@ function createRandomSphere() {
     ];
     const randomShader = fragmentShaders[Math.floor(Math.random() * fragmentShaders.length)];
 
-    // Create the new sphere with the random shader
+    // Create the new sphere with the random shader and size
     GameAPI.scene.createObject('sphere', sphereId, {
-        radius: 1.0,
+        radius: randomSize,  // Use random size here
         segments: 32,
         position: position,
         material: {
@@ -460,6 +463,82 @@ function createRandomSphere() {
     });
 }
 
+// Add a function to demonstrate Bezier camera movement
+function demonstrateCameraPath() {
+    const startPos = [25, -12, 0];
+    const startRot = [0, -Math.PI / 2, 0];
+
+    const radius = 40;
+    const height = 20;
+
+    // Helper function to calculate rotation to look at center
+    function calculateLookAtCenter(position) {
+        // Calculate horizontal angle (yaw)
+        const yaw = Math.atan2(-position[0], -position[2]);
+        // Calculate vertical angle (pitch) - point down more when higher
+        const distance = Math.sqrt(position[0] * position[0] + position[2] * position[2]);
+        const pitch = -Math.atan2(position[1], distance) - 0.3; // Extra tilt down
+        return [pitch, yaw, 0];
+    }
+
+    // Create a complete circular path
+    const fullCirclePoints = [
+        {
+            // First quarter
+            p1: [radius, height, radius],
+            p2: [0, height * 1.5, radius],
+            r1: calculateLookAtCenter([radius, height, radius]),
+            r2: calculateLookAtCenter([0, height * 1.5, radius])
+        },
+        {
+            // Second quarter
+            p1: [-radius, height, radius],
+            p2: [-radius, height, 0],
+            r1: calculateLookAtCenter([-radius, height, radius]),
+            r2: calculateLookAtCenter([-radius, height, 0])
+        },
+        {
+            // Third quarter
+            p1: [-radius, height, -radius],
+            p2: [0, height * 1.5, -radius],
+            r1: calculateLookAtCenter([-radius, height, -radius]),
+            r2: calculateLookAtCenter([0, height * 1.5, -radius])
+        },
+        {
+            // Fourth quarter - return to start
+            p1: [radius, height, -radius],
+            p2: startPos,
+            r1: calculateLookAtCenter([radius, height, -radius]),
+            r2: startRot
+        }
+    ];
+
+    let currentSegment = 0;
+    const segmentDuration = 7500;
+
+    function animateNextSegment() {
+        const currentPoints = fullCirclePoints[currentSegment];
+        const nextPos = currentSegment === 3 ? startPos : fullCirclePoints[(currentSegment + 1) % 4].p1;
+        const nextRot = currentSegment === 3 ? startRot : calculateLookAtCenter(nextPos);
+
+        GameAPI.camera.setTarget(
+            nextPos,
+            nextRot,
+            {
+                movementType: 'bezier',
+                duration: segmentDuration,
+                controlPoints: currentPoints
+            }
+        );
+
+        currentSegment = (currentSegment + 1) % 4;
+        setTimeout(animateNextSegment, segmentDuration);
+    }
+
+    // Start the animation loop
+    animateNextSegment();
+}
+
 // Modify init function
 exports.init = function (api) {
     debugLog('Initializing Enhanced Terrain Demo...');
@@ -472,6 +551,9 @@ exports.init = function (api) {
 
     GameAPI.camera.setPosition(25, -12, 0);
     GameAPI.camera.lookAt(0, 0, 0);
+
+    // Start camera demonstration after a short delay
+    setTimeout(demonstrateCameraPath, 2000);
 
     debugLog('Init complete');
 };
