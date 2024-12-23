@@ -532,7 +532,7 @@ function demonstrateCameraPath() {
         );
 
         currentSegment = (currentSegment + 1) % 4;
-        setTimeout(animateNextSegment, segmentDuration);
+        //setTimeout(animateNextSegment, segmentDuration);
     }
 
     // Start the animation loop
@@ -549,11 +549,11 @@ exports.init = function (api) {
     createTerrain(0, 0, 0, worldSize, worldSize);
     initializeLight();
 
+    // Create a particle emitter at origin
+    createParticleEffect([0, 0, 0]);
+
     GameAPI.camera.setPosition(25, -12, 0);
     GameAPI.camera.lookAt(0, 0, 0);
-
-    // Start camera demonstration after a short delay
-    setTimeout(demonstrateCameraPath, 2000);
 
     debugLog('Init complete');
 };
@@ -600,3 +600,16 @@ exports.cleanup = function () {
         GameAPI.scene.removeObject(sphereId);
     }
 };
+
+function createParticleEffect(position) {
+    GameAPI.particles.createEmitter({
+        position: position,
+        rate: 400,           // Increased rate
+        count: 10000,          // Reduced max count
+        life: 1000,          // Shorter lifetime
+        size: 15.0,           // Much larger size
+        speed: 15,           // Faster speed
+        spread: Math.PI / 2,  // Wider spread
+        color: [1.0, 0.5, 0.0, 1.0]  // Brighter orange
+    });
+}
