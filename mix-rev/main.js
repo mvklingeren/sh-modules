@@ -127,8 +127,8 @@ function createTerrain(x, y, z, width, depth) {
     GameAPI.scene.createObject('plane', 'main-terrain', {
         width: width,
         height: depth,
-        widthSegments: 32,
-        heightSegments: 32,
+        widthSegments: 64,
+        heightSegments: 64,
         position: [0, -15, 0],
         rotation: [0, 0, 0],
         material: {
@@ -195,7 +195,7 @@ function initializeLight() {
     GameAPI.light.createPointLight('moving-light', {
         position: [0, 0, 0],
         color: [1.0, 0.95, 0.8],
-        intensity: 5,
+        intensity: 2,
         radius: 50
     });
 
@@ -232,11 +232,15 @@ function getRandomPosition() {
 // Add sphere tracking array at the top with other constants
 const MAX_SPHERES = 30;
 const sphereQueue = [];
+let sphereCount = 0;  // Add counter for unique IDs
+let lastSphereTime = 0;  // Track last sphere creation time
+const SPHERE_INTERVAL = 1 / 3 * 1000; // Convert 1/3 second to milliseconds
 
 // Modify createRandomSphere to manage the sphere queue
 function createRandomSphere() {
+    sphereCount++;
     const position = getRandomPosition();
-    const sphereId = `sphere-${Date.now()}`; // Unique ID based on timestamp
+    const sphereId = `sphere-${sphereCount}`; // Use counter instead of timestamp
 
     // Add new sphere to queue
     sphereQueue.push(sphereId);
@@ -248,6 +252,7 @@ function createRandomSphere() {
         debugLog("Removed oldest sphere:", { removedId: oldestSphereId, queueSize: sphereQueue.length });
     }
 
+    // Create the new sphere
     GameAPI.scene.createObject('sphere', sphereId, {
         radius: 1.0,
         segments: 32,
@@ -275,9 +280,9 @@ function createRandomSphere() {
     ], fallDuration, 'quadratic');
 
     debugLog("Created new sphere:", {
-        newId: sphereId,
+        newId: sphereId, 
         queueSize: sphereQueue.length,
-        position: position
+        position: position 
     });
 }
 
@@ -289,28 +294,24 @@ exports.init = function (api) {
 
     const worldSize = 50;
     createTerrain(0, 0, 0, worldSize, worldSize);
-    //createSphereGrid(5, 5, 12, -10);
     initializeLight();
 
     GameAPI.camera.setPosition(20, 20, 20);
     GameAPI.camera.lookAt(0, -15, 0);
 
-    // Modify keyboard event listener for spacebar
-    GameAPI.addEventListener('input', (data) => {
-        if (!data.event) return;
-        const event = data.event;
-
-        if (event.type === 'keydown' && event.code === 'Space') {
-            createRandomSphere();
-        }
-    });
-
     debugLog('Init complete');
 };
 
-// Modify update function - remove sphere tracking code
+// Modify update function to automatically create spheres
 exports.update = function (event) {
     const { time } = event;
+    const currentTime = GameAPI.time.now();
+
+    // Check if it's time to create a new sphere
+    if (currentTime - lastSphereTime >= SPHERE_INTERVAL) {
+        createRandomSphere();
+        lastSphereTime = currentTime;
+    }
 
     // Calculate position for moving light
     const radius = 15;
@@ -327,7 +328,7 @@ exports.update = function (event) {
     GameAPI.scene.setPosition('moving-light-sphere', ...newPos);
 };
 
-// Modify cleanup to remove all remaining spheres
+// Modify cleanup to properly remove all remaining spheres
 exports.cleanup = function () {
     debugLog('Cleaning up...');
 
