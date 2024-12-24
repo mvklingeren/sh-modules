@@ -6,5 +6,13 @@
   "entry": {
     "type": "javascript",
     "script": "main.js"
+  },
+  "resources": {
+    "id": "plasma",
+    "type": "fragmentShader",
+    "source": {
+      "type": "relative",
+      "path": "shaders/plasma.glsl"
+    }
   }
 }

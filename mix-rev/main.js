@@ -604,12 +604,12 @@ exports.cleanup = function () {
 function createParticleEffect(position) {
     GameAPI.particles.createEmitter({
         position: position,
-        rate: 400,           // Increased rate
-        count: 10000,          // Reduced max count
+        rate: 6000,           // Increased rate
+        count: 100000,          // Reduced max count
         life: 1000,          // Shorter lifetime
-        size: 15.0,           // Much larger size
-        speed: 15,           // Faster speed
-        spread: Math.PI / 2,  // Wider spread
+        size: 40.0,           // Much larger size
+        speed: 1000,           // Faster speed
+        spread: Math.PI / 4,  // Wider spread
         color: [1.0, 0.5, 0.0, 1.0]  // Brighter orange
     });
 }
