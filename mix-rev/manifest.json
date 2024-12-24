@@ -23,7 +23,7 @@
       "preload": true,
       "source": {
         "type": "url",
-        "url": "https://raw.githubusercontent.com/mvklingeren/sh-modules/feature/camera-fixes-bs/mix-rev/texture/zebra.png"
+        "url": "https://raw.githubusercontent.com/mvklingeren/sh-modules/feature/camera-fixes-bs/mix-rev/textures/zebra.png"
       }
     }
   ]
