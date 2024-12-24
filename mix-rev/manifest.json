@@ -11,9 +11,19 @@
     {
       "id": "plasma",
       "type": "text",
+      "preload": true,
       "source": {
         "type": "url",
         "url": "https://raw.githubusercontent.com/mvklingeren/sh-modules/feature/camera-fixes-bs/mix-rev/shaders/plasma.glsl"
+      }
+    },
+    {
+      "id": "text-zebra",
+      "type": "buffer",
+      "preload": true,
+      "source": {
+        "type": "url",
+        "url": "https://raw.githubusercontent.com/mvklingeren/sh-modules/feature/camera-fixes-bs/mix-rev/texture/zebra.png"
       }
     }
   ]
