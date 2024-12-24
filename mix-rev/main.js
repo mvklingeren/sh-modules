@@ -413,7 +413,7 @@ function createRandomSphere() {
     const fragmentShaders = [
         sphereShaders.pulseFragment,
         sphereShaders.rainbowFragment,
-        //sphereShaders.plasmaFragment,
+        sphereShaders.plasmaFragment,
         sphereShaders.rippleFragment,
         sphereShaders.fireFragment
     ];
