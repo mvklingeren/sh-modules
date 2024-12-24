@@ -1,19 +1,20 @@
 {
   "id": "mix-rev",
-  "name": "Mix Demo",
+  "name": "Mix Rev",
   "version": "1.0.0",
   "active": true,
   "entry": {
     "type": "javascript",
     "script": "main.js"
   },
-  "resources": {
-    "id": "plasma",
-    "type": "fragmentShader",
-    "preload": true,
-    "source": {
-      "type": "relative",
-      "path": "shaders/plasma.glsl"
+  "resources": [
+    {
+      "id": "plasma",
+      "type": "text",
+      "source": {
+        "type": "url",
+        "url": "https://raw.githubusercontent.com/mvklingeren/sh-modules/feature/camera-fixes-bs/mix-rev/shaders/plasma.glsl"
+      }
     }
-  }
+  ]
 }

@@ -434,7 +434,8 @@ function createRandomSphere() {
             color: [1.0, 1.0, 1.0],
             alpha: 0.7,
             vertexShader: sphereShaders.vertex,
-            fragmentShader: randomShader,
+            // fragmentShader: randomShader,
+            fragmentShaderResourceId: 'plasma',
             uniforms: {
                 uTime: GameAPI.time.now() * 0.001,
                 uOpacity: 0.7,

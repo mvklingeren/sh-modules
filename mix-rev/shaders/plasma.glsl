@@ -11,14 +11,13 @@ varying vec3 vPosition;
 varying vec3 vWorldPosition;
 
 void main() {
-    vec3 p = vWorldPosition * 2.0;
-    float plasma = sin(p.x * 10.0 + uTime) * cos(p.y * 10.0 - uTime) * sin(p.z * 10.0);
-    plasma += 0.5 * sin(distance(p, vec3(0.0)) * 8.0 - uTime * 2.0);
+    vec3 p = normalize(vWorldPosition);
+    float ripple = sin(20.0 * distance(p, vec3(0.0)) - uTime * 3.0);
     
     vec3 baseColor = mix(
-        vec3(0.1, 0.4, 1.0),
-        vec3(0.8, 0.2, 0.8),
-        plasma * 0.5 + 0.5
+        vec3(0.2, 0.5, 1.0),
+        vec3(0.1, 0.2, 0.8),
+        ripple * 0.5 + 0.5
     );
     
     vec3 lightDir = normalize(uPointLightPos - vPosition);
@@ -31,5 +30,5 @@ void main() {
     vec3 ambient = vec3(0.2);
     
     vec3 finalColor = baseColor * (diffuse + ambient);
-    gl_FragColor = vec4(finalColor, 1.0);
+    gl_FragColor = vec4(finalColor, 0.8);
 }
