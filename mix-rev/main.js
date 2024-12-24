@@ -413,7 +413,7 @@ function createRandomSphere() {
     const fragmentShaders = [
         sphereShaders.pulseFragment,
         sphereShaders.rainbowFragment,
-        sphereShaders.plasmaFragment,
+        //sphereShaders.plasmaFragment,
         sphereShaders.rippleFragment,
         sphereShaders.fireFragment
     ];
@@ -555,6 +555,22 @@ exports.init = function (api) {
     GameAPI.camera.setPosition(25, -12, 0);
     GameAPI.camera.lookAt(0, 0, 0);
 
+    GameAPI.scene.createObject('sphere', 'plasma-sphere', {
+        radius: 1,
+        segments: 32,
+        position: [0, 0, 0],
+        material: {
+            type: 'shader',
+            fragmentShaderId: 'plasma',
+            color: [1.0, 1.0, 1.0],
+            alpha: 0.7,
+            emission: 1.0,
+            blending: 'standard',
+            transparent: true,
+            depthWrite: false,
+            depthTest: true
+        }
+    });
     debugLog('Init complete');
 };
 

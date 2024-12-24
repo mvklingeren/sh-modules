@@ -10,6 +10,7 @@
   "resources": {
     "id": "plasma",
     "type": "fragmentShader",
+    "preload": true,
     "source": {
       "type": "relative",
       "path": "shaders/plasma.glsl"
